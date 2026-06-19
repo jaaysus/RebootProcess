@@ -1,0 +1,136 @@
+.scan-page {
+  height: 100vh;
+  background: #1b1b1b;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Banner */
+.scan-banner {
+  position: absolute;
+  top: calc(0% + 70px); /* below "Waiting for scan" */
+  width: 100%;
+  padding: 20px 0;
+  text-align: center;
+  font-size: 42px;
+  font-weight: bold;
+  letter-spacing: 3px;
+  color: white;
+  animation: flash 1.2s ease-in-out;
+}
+
+.scan-banner.success {
+  background: #1f8f3a;
+}
+
+.scan-banner.error {
+  background: #b32020;
+}
+
+@keyframes flash {
+  0% { opacity: 0; }
+  15% { opacity: 1; }
+  85% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.badgeNum-entry {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+}
+
+/* INDUSTRIAL INPUT */
+.badgeNum-entry input {
+  width: min(80vw, 420px);
+  height: 80px;                 /* Big for touch */
+  background: #121212;          /* Blend with scan page */
+  border: 2px solid #333;
+  border-radius: 6px;
+  color: #e0e0e0;
+  font-size: 32px;
+  letter-spacing: 4px;
+  text-align: center;
+  outline: none;
+  box-shadow: inset 0 0 0 2px #000;
+}
+
+.badgeNum-entry input::placeholder {
+  color: #555;
+  letter-spacing: 1px;
+  font-size: 22px;
+}
+
+.badgeNum-entry input:focus {
+  border-color: #1f8f3a;
+  box-shadow: 0 0 12px rgba(31, 143, 58, 0.6);
+}
+
+
+
+
+.badgeNum-entry button {
+  width: min(50vw, 400px);
+  height: min(10vh, 80px);
+  font-size: clamp(18px, 3vw, 30px);
+  background-color: rgb(0, 255, 0);
+  color: black;
+  font-weight: bold;
+  cursor: pointer;
+  border: none;
+  border-radius: 4px;
+  letter-spacing: 2px;
+}
+
+.badgeNum-entry button:active {
+  transform: scale(0.97);
+}
+
+.scanner-logo {
+  display: flex;
+  justify-content: center;  /* Center horizontally */
+  margin-bottom: 20px;      /* Space below the logo */
+  z-index: 2;               /* Make sure it’s above background */
+}
+
+.scanner-logo img {
+  width: 180px;
+  height: 180px;
+  filter: brightness(0) saturate(100%) invert(84%) sepia(0%) saturate(0%) hue-rotate(192deg) brightness(80%) contrast(85%);
+}
+
+
+.scan-header {
+  display: flex;
+  flex-direction: column; /* stack vertically */
+  align-items: center;    /* center horizontally */
+  z-index: 2;
+  gap: 10px;              /* space between logo and text */
+}
+
+/* Scan text */
+.scan-text {
+  color: #ccc;
+  font-size: 48px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  z-index: 1;
+  text-align: center;
+}
+
+/* Animated dots */
+.dots::after {
+  content: '';
+  animation: dots 1.5s steps(3, end) infinite;
+}
+
+@keyframes dots {
+  0% { content: ''; }
+  33% { content: '.'; }
+  66% { content: '..'; }
+  100% { content: '...'; }
+}

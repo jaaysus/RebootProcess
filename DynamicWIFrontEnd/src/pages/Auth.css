@@ -1,0 +1,41 @@
+.auth-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f8f9fa;
+}
+
+.auth-card {
+  max-width: 400px;
+  width: 100%;
+  border-radius: 12px;
+}
+
+.auth-link {
+  color: #dc3545;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.auth-link:hover {
+  text-decoration: underline;
+}
+
+
+
+/* Success overlay covers the form */
+.auth-panel-wrapper {
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.auth-panel-fade-in {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.auth-panel-fade-out {
+  opacity: 0;
+  transform: translateY(6px);
+  pointer-events: none;
+}
