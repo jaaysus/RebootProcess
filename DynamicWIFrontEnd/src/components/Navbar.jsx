@@ -2,7 +2,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { logoutUser } from '../redux/slices/userSlice';
 import { useNavigate } from 'react-router-dom';
 import { MdDashboard } from 'react-icons/md';
-import { FaUsers, FaCarSide, FaTools, FaFileAlt } from 'react-icons/fa';
+import { FaUsers, FaCarSide, FaTools, FaFileAlt, FaList, FaPlug, FaProjectDiagram } from 'react-icons/fa';
 import './Navbar.css';
 
 export default function AppNavbar() {
@@ -90,6 +90,29 @@ export default function AppNavbar() {
                 <span className="nav-link" style={{ cursor: 'pointer' }} onClick={() => navigate('/work-instructions')} title="Work Instructions">
                   <span className="nav-text">Work Instructions</span>
                   <FaFileAlt className="nav-icon" aria-hidden="true" />
+                </span>
+              </li>
+            </>
+          )}
+
+          {(role === 'Admin' || role === 'Process Technician') && (
+            <>
+              <li className="nav-item">
+                <span className="nav-link" style={{ cursor: 'pointer' }} onClick={() => navigate('/editor/epns')} title="EPNs">
+                  <span className="nav-text">EPNs</span>
+                  <FaList className="nav-icon" aria-hidden="true" />
+                </span>
+              </li>
+              <li className="nav-item">
+                <span className="nav-link" style={{ cursor: 'pointer' }} onClick={() => navigate('/editor/connectors')} title="Connectors">
+                  <span className="nav-text">Connectors</span>
+                  <FaPlug className="nav-icon" aria-hidden="true" />
+                </span>
+              </li>
+              <li className="nav-item">
+                <span className="nav-link" style={{ cursor: 'pointer' }} onClick={() => navigate('/editor/wires')} title="Wires">
+                  <span className="nav-text">Wires</span>
+                  <FaProjectDiagram className="nav-icon" aria-hidden="true" />
                 </span>
               </li>
             </>
