@@ -67,7 +67,6 @@ namespace DynamicWiApi.Controllers
 
             existing.Epn = model.Epn;
             existing.CavityCount = model.CavityCount;
-            existing.HousingColor = model.HousingColor;
             existing.NeedsCoordination = model.NeedsCoordination;
             if (!string.IsNullOrEmpty(model.CoordinatesJson))
                 existing.CoordinatesJson = model.CoordinatesJson;
@@ -143,7 +142,6 @@ namespace DynamicWiApi.Controllers
                 e.Id,
                 e.Epn,
                 e.CavityCount,
-                e.HousingColor,
                 e.Photo,
                 e.ImageWidth,
                 e.ImageHeight,
