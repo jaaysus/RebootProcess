@@ -1,0 +1,97 @@
+[
+    {
+        "id" :1,
+        "composite" : "L460 SWB LHD",
+        "line" : 66,
+        "station" : "St.Preassembly12",
+        "instructions": [
+            { 
+                "id":1,
+                "module" : "MD162",
+                "wire": "CCL24AB",
+                "csa" : 0.75,
+                "length" : 4185,
+                "colors": ["green", "orange", "green"],
+                "core": "Core30-P16",
+                "description": "Insertion",
+                "connectors": [{
+                    "id":1,
+                    "node": "C4CC11D",
+                    "cav" : 2,
+                    "epn": "E05575700",
+                    "location" : "CC2",
+                    "disabled" : false,
+                    "image" : "/connector1.png"
+                },
+                {
+                    "id":2,
+                    "node": "C1CL02A",
+                    "cav" : 6,
+                    "epn": "E05576800",
+                    "location" : "GG3",
+                    "disabled" : true,
+                    "image" : "/connector1.png"
+                }
+                ]               
+            },
+            { 
+                "id":2,
+                "module" : "MD100",
+                "wire": "CCD05A",
+                "csa" : 0.75,
+                "length" : 4820,
+                "colors": ["green", "blue", "green"],
+                "core": "Core30-P25",
+                "description": "Insertion",
+                "connectors": [{
+                    "id":1,
+                    "node": "C4CC11D",
+                    "cav" : 23,
+                    "epn": "E05575700",
+                    "location" : "CC2",
+                    "disabled" : true,
+                    "image" : "/connector2.png"
+                },
+                {
+                    "id":2,
+                    "node": "CM44A3",
+                    "cav" : 5,
+                    "epn": "E05576800",
+                    "location" : "G1",
+                    "disabled" : false,
+                    "image" : "/connector3.png"
+                }
+                ]               
+            },
+            { 
+                "id":3,
+                "module" : "MD100",
+                "wire": "RCD05A",
+                "csa" : 0.75,
+                "length" : 4825,
+                "colors": ["yellow", "blue", "yellow"],
+                "core": "Core30-P25",
+                "description": "Insertion",
+                "connectors": [{
+                    "id":1,
+                    "node": "C4CC11D",
+                    "cav" : 24,
+                    "epn": "E05575700",
+                    "location" : "CC2",
+                    "disabled" : false,
+                    "image" : "/connector2.png"
+                },
+                {
+                    "id":2,
+                    "node": "CM44A3",
+                    "cav" : 6,
+                    "epn": "E05576800",
+                    "location" : "G1",
+                    "disabled" : false,
+                    "image" : "/connector3.png"
+                }
+                ]               
+            }
+        ]
+    }
+]
