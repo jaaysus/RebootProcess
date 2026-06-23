@@ -71,7 +71,7 @@ export default function UsersTable() {
   const handleAddUser = async () => { await dispatch(createUser(formData)); setFormData(emptyFormData); setShowAddModal(false); setSelectedIds([]); };
   const handleEditUser = async () => {
     if (!selectedUser) return;
-    const updated = await dispatch(updateUser(getUserId(selectedUser), { fullName: formData.fullName, email: formData.email, role: formData.role }));
+    const updated = await dispatch(updateUser({ id: getUserId(selectedUser), userData: { fullName: formData.fullName, email: formData.email, role: formData.role } }));
     if (!updated) return;
     setFormData(emptyFormData); setSelectedUser(null); setShowEditModal(false);
   };

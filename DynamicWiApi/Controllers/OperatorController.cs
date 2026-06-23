@@ -12,7 +12,7 @@ using Microsoft.AspNetCore.Authorization;
 namespace DynamicWiApi.Controllers;
 
 [ApiController]
-[Route("operators")]
+[Route("api/operators")]
 public class OperatorsController : ControllerBase
 {
     private readonly AppDbContext _db;

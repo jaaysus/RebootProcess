@@ -37,7 +37,7 @@ builder.Services.AddAuthentication("Bearer")
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
             IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? "default-key-change-in-production")
+                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"])
             )
         };
     });
@@ -56,15 +56,22 @@ app.UseSwaggerUI(c =>
     c.SwaggerEndpoint("/swagger/v1/swagger.json", "DynamicWiApi v1");
 });
 
+app.UseHttpsRedirection();
+
 using var scope = app.Services.CreateScope();
 var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 await UserCli.HandleAsync(args, db);
+await AdminCli.HandleAsync(args, db);
+
+app.UseDefaultFiles();
+app.UseStaticFiles();
+
 
 app.UseCors("AllowFrontend");
 app.UseAuthentication();
+app.UseRouting();
 app.UseAuthorization();
 
-app.UseStaticFiles();
 app.MapGet("/", () => Results.Redirect("/index.html"));
 
 app.MapControllers();

@@ -5,7 +5,7 @@ using DynamicWiApi.Models;
 namespace DynamicWiApi.Controllers;
 
 [ApiController]
-[Route("audit-logs")]
+[Route("api/audit-logs")]
 [Authorize(Roles = Roles.Admin)] 
 public class AuditLogsController : ControllerBase
 {

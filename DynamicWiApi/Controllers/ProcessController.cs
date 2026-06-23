@@ -3,7 +3,7 @@ using ClosedXML.Excel;
 namespace DynamicWiApi.Controllers
 {
     [ApiController]
-    [Route("process")]
+    [Route("api/process")]
     public class ProcessController : ControllerBase
     {
         [HttpPost("excel")]

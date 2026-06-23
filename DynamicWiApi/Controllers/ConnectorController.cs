@@ -5,7 +5,7 @@ using DynamicWiApi.Models;
 namespace DynamicWiApi.Controllers;
 
 [ApiController]
-[Route("connectors")]
+[Route("api/connectors")]
 [Authorize] // require JWT authentication
 public class ConnectorsController : ControllerBase
 {

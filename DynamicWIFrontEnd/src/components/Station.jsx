@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import './Station.css';
-import { mockRows } from '../pages/EngineerSpace/Process/Projects' // make sure to export mockRows from Projects.jsx
+import { mockRows } from '../pages/EngineerSpace/Process/Projects' 
 
 const colorMap = {
   BK: 'black', BU: 'blue', BN: 'brown', GN: 'green', GY: 'grey',

@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 export const api = axios.create({
-  baseURL: 'http://localhost:5148'
+  baseURL: 'http://localhost:5148/api'
 })
 
 // Attach token to every request
@@ -14,7 +14,7 @@ api.interceptors.request.use(cfg => {
 const isAuthEndpoint = (url = '') => {
   try {
     const path = new URL(url, api.defaults.baseURL).pathname.toLowerCase()
-    return path.startsWith('/auth/login') || path.startsWith('/auth/register')
+    return path.endsWith('/auth/login') || path.endsWith('/auth/register')
   } catch {
     return false
   }

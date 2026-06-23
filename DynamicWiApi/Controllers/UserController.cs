@@ -8,7 +8,7 @@ using UserModel = DynamicWiApi.Models.User;
 namespace DynamicWiApi.Controllers;
 
 [ApiController]
-[Route("users")]
+[Route("api/users")]
 [Authorize(Roles = $"{Roles.Admin},{Roles.ProcessTechnician}")]
 public class UsersController : ControllerBase
 {
@@ -26,7 +26,7 @@ public class UsersController : ControllerBase
         return Ok(_db.Users.ToList());
     }
 
-    // GET /users/{id}
+    // GET /api/users/{id}
     [HttpGet("{id:guid}")]
     public IActionResult GetUserById(Guid id)
     {

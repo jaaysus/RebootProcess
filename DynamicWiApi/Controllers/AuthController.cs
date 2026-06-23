@@ -11,7 +11,7 @@ using UserModel = DynamicWiApi.Models.User;
 namespace DynamicWiApi.Controllers;
 
 [ApiController]
-[Route("auth")]
+[Route("api/auth")]
 public class AuthController : ControllerBase
 {
     private readonly AppDbContext _db;
