@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import data from "../data.json";
 import "./Station.css";
 import InstructionCard from "./InstructionCard";
@@ -8,10 +8,9 @@ export default function Station() {
   const composite = data[0];
   const [index, setIndex] = useState(0);
 
-  const location = useLocation();
   const navigate = useNavigate();
 
-  const operator = location.state?.operator;
+  const operator = JSON.parse(localStorage.getItem("op_user")) || {};
 
   const nextInstruction = () => {
     if (index + 1 < composite.instructions.length) {
@@ -29,11 +28,6 @@ export default function Station() {
 
   useEffect(() => {
     const handleKeyPress = (event) => {
-      if (event.key === "l" || event.key === "L") {
-        event.preventDefault();
-        switchLanguage();
-      }
-
       if (event.key === "Enter" || event.key === "ArrowRight") {
         event.preventDefault();
         nextInstruction();
@@ -44,6 +38,7 @@ export default function Station() {
         prevInstruction();
       }
     };
+
     window.addEventListener("keydown", handleKeyPress);
 
     return () => {
@@ -62,7 +57,8 @@ export default function Station() {
 
         <div className="headRight">
           <div className="operatorBadge">
-            operator badge: {operator?.badge || "UNKNOWN"}
+            operator:{" "}
+            {operator?.FullName || "UNKNOWN"} {operator?.Badge || "UNKNOWN"} 
           </div>
         </div>
       </div>

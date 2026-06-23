@@ -139,7 +139,7 @@
 .buttonContainer {
   width: 100%;
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
   margin-top: 40px;
   padding: 0 40px;
@@ -148,7 +148,6 @@
 .navigationButtons {
   display: flex;
   gap: 10px;
-  margin-right: 50px;
 }
 
 /* next button */
