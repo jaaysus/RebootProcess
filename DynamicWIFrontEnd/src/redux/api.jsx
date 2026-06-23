@@ -14,7 +14,12 @@ api.interceptors.request.use(cfg => {
 const isAuthEndpoint = (url = '') => {
   try {
     const path = new URL(url, api.defaults.baseURL).pathname.toLowerCase()
-    return path.endsWith('/auth/login') || path.endsWith('/auth/register')
+    return (
+      path.endsWith('/auth/login') ||
+      path.endsWith('/auth/register') ||
+      path.endsWith('/operators/login') ||
+      path.endsWith('/operators/logout')
+    )
   } catch {
     return false
   }
