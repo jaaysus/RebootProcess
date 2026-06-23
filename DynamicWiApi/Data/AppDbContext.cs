@@ -26,4 +26,5 @@ public class AppDbContext : DbContext
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<HarnessProject> HarnessProjects => Set<HarnessProject>();
     public DbSet<ProcessExcelData> ProcessExcelData => Set<ProcessExcelData>();
+    public DbSet<ModuleList> ModuleLists => Set<ModuleList>();
 }
