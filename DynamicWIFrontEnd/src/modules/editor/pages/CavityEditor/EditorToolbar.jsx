@@ -109,7 +109,16 @@ export function EditorToolbar({
             min="1"
             max="200"
             value={batchCount}
-            onChange={(e) => setBatchCount(clamp(Number(e.target.value) || 1, 1, 200))}
+            onChange={(e) => {
+              const value = e.target.value;
+              if (value === "") {
+                setBatchCount("");
+                return;
+              }
+              const num = Number(value);
+              if (Number.isNaN(num)) return;
+              setBatchCount(clamp(num, 1, 200));
+            }}
           />
           <button onClick={addCavities} disabled={!image} type="button">
             Add
