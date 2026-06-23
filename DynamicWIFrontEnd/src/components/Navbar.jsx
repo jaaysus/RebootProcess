@@ -86,17 +86,17 @@ export default function AppNavbar() {
                   <FaCarSide className="nav-icon" aria-hidden="true" />
                 </span>
               </li>
+            </>
+          )}
+
+          {(role === 'Admin' || role === 'Process Technician') && (
+            <>
               <li className="nav-item">
                 <span className="nav-link" style={{ cursor: 'pointer' }} onClick={() => navigate('/work-instructions')} title="Work Instructions">
                   <span className="nav-text">Work Instructions</span>
                   <FaFileAlt className="nav-icon" aria-hidden="true" />
                 </span>
               </li>
-            </>
-          )}
-
-          {(role === 'Admin' || role === 'Process Technician') && (
-            <>
               <li className="nav-item">
                 <span className="nav-link" style={{ cursor: 'pointer' }} onClick={() => navigate('/editor/epns')} title="EPNs">
                   <span className="nav-text">EPNs</span>
