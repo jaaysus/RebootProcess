@@ -8,7 +8,6 @@ import OperatorSpace from './pages/OperatorSpace/OperatorSpace';
 import Home from './pages/Home';
 import UsersTable from './pages/EngineerSpace/Admin/UsersTable';
 import OperatorsTable from './pages/EngineerSpace/Admin/OperatorsTable';
-import Projects from './pages/EngineerSpace/Process/Projects';
 import Editor from './modules/editor/Editor';
 import WorkInstructions from './pages/EngineerSpace/Process/WorkInstructions';
 
@@ -20,7 +19,6 @@ function App() {
       <Route path="/station/:stationId" element={<Station />} />
       <Route path="/operator"         element={<OperatorSpace />} />
       <Route path="/editor/*" element={<ProtectedRoute requiredRoles={['Admin', 'Process Technician']}><Editor /></ProtectedRoute>} />
-      <Route path="/projects"  element={<ProtectedRoute requiredRoles={['Admin', 'Process Technician']}><Projects /></ProtectedRoute>} />
       <Route path="/work-instructions" element={<ProtectedRoute requiredRoles={['Admin', 'Process Technician']}><WorkInstructions /></ProtectedRoute>} />
       <Route path="/admin"     element={<ProtectedRoute requiredRoles={['Admin']}                      ><AdminDashboard /></ProtectedRoute>} />
       <Route path="/users"     element={<ProtectedRoute requiredRoles={['Admin']}                      ><UsersTable /></ProtectedRoute>} />

@@ -57,12 +57,6 @@ export default function AppNavbar() {
                   <FaTools className="nav-icon" aria-hidden="true" />
                 </span>
               </li>
-              <li className="nav-item">
-                <span className="nav-link" style={{ cursor: 'pointer' }} onClick={() => navigate('/projects')} title="Projects">
-                  <span className="nav-text">Projects</span>
-                  <FaCarSide className="nav-icon" aria-hidden="true" />
-                </span>
-              </li>
             </>
           )}
 
