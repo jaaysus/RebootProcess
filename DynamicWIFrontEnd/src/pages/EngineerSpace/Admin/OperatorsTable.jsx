@@ -8,16 +8,6 @@ import { QRCodeCanvas } from "qrcode.react";
 import AccordionTable from "../../../components/AccordionTable";
 import OperatorModals from "../../../components/OperatorModals";
 
-const OPERATOR_COLUMNS = [
-  { label: "", style: { width: 40 } },
-  { label: "#" },
-  { label: "Full Name" },
-  { label: "Badge" },
-  { label: "Password" },
-  { label: "QR" },
-  { label: "Actions" },
-];
-
 export default function OperatorsTable() {
   const dispatch = useDispatch();
   const { operators, loading: operatorsLoading } = useSelector((s) => s.operator);
@@ -40,8 +30,10 @@ export default function OperatorsTable() {
 
   const operatorBadges = operators.map(getOperatorBadge).filter(Boolean);
   const someOperatorsSelected = selectedOperatorBadges.length > 0;
+  const allOperatorsSelected = operators.length > 0 && selectedOperatorBadges.length === operatorBadges.length;
+
   const toggleSelectOperator = (badge) => badge && setSelectedOperatorBadges((prev) => prev.includes(badge) ? prev.filter((x) => x !== badge) : [...prev, badge]);
-  const toggleSelectAllOperators = () => setSelectedOperatorBadges(selectedOperatorBadges.length === operatorBadges.length ? [] : operatorBadges);
+  const toggleSelectAllOperators = () => setSelectedOperatorBadges(allOperatorsSelected ? [] : operatorBadges);
 
   const addOperator = async () => { await dispatch(createOperator({ fullName: opForm.fullName, badge: opForm.badge })); setShowOpAdd(false); setOpForm({ fullName: "", badge: "" }); };
   const editOperator = async () => {
@@ -76,6 +68,26 @@ export default function OperatorsTable() {
     await dispatch(fetchOperators());
     e.target.value = "";
   };
+
+  const OPERATOR_COLUMNS = [
+    {
+      label: (
+        <input
+          className="form-check-input"
+          type="checkbox"
+          checked={allOperatorsSelected}
+          onChange={toggleSelectAllOperators}
+        />
+      ),
+      style: { width: 40 },
+    },
+    { label: "#" },
+    { label: "Full Name" },
+    { label: "Badge" },
+    { label: "Password" },
+    { label: "QR" },
+    { label: "Actions" },
+  ];
 
   const renderOperatorRow = (op, idx) => {
     const opBadge = getOperatorBadge(op);
