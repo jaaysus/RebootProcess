@@ -15,7 +15,7 @@ import {
 } from './CavityEditor/cavityEditorUtils';
 import Modal from '../components/Modal';
 import '../components/Modal.css';
-import './EPNs.css';
+import './EPNs/EPNs.css';
 
 function readFileAsDataUrl(file) {
   return new Promise((resolve, reject) => {

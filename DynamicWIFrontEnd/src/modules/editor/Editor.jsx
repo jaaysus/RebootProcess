@@ -2,7 +2,7 @@ import { useRef, useState } from 'react'
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 
 import { CavityEditor } from './pages/CavityEditor'
-import EPNs from './pages/EPNs'
+import EPNs from './pages/EPNs/EPNs'
 import Connectors from './pages/Connectors'
 import Wires from './pages/Wires'
 import AppNavbar from '../../components/Navbar'

@@ -17,15 +17,6 @@
     margin: 0;
   }
 
-  .epns-download-btn {
-    padding: 8px 14px;
-    border-radius: 8px;
-    background: #ffffff;
-    color: #111111;
-    border: 1px solid #d4d4d4;
-    cursor: pointer;
-    font-weight: 700;
-  }
 
   /* FORM */
   .epns-form {
@@ -67,7 +58,7 @@
     align-items: start;
   }
 
-  /* CARD style matching gg.html exactly */
+  /* CARD */
   .epns-card {
     background: #fff;
     display: flex;
@@ -80,7 +71,7 @@
     overflow: hidden;
   }
 
-  /* ── Header bar ── */
+  /* Header bar */
   .card-header {
     width: 100%;
     background: #f5c400;
@@ -90,23 +81,15 @@
     padding: 3px 6px;
     gap: 4px;
   }
-  .card-header .part-num {
+  
+  .node-name {
     font-weight: 700;
     font-size: 12px;
     color: #000;
     letter-spacing: 0.3px;
   }
-  .card-header .variant {
-    font-size: 11px;
-    font-weight: 700;
-    color: #fff;
-    white-space: nowrap;
-    background: #7b3fa0;
-    padding: 1px 6px;
-    border-radius: 3px;
-  }
 
-  /* ── EPN bar ── */
+  /* EPN bar */
   .epn-bar {
     width: 100%;
     background: #f5c400;
@@ -119,40 +102,27 @@
     color: #000;
   }
 
-  /* ── Badge (BEV / 1+3 / 3 etc.) ── */
-  .badge {
-    position: absolute;
-    top: 52px;
-    left: 8px;
-    padding: 1px 6px;
-    border-radius: 3px;
-    font-size: 10px;
-    font-weight: 700;
-    z-index: 10;
-  }
-  .badge.green  { background: #3a9a3a; color: #fff; }
-  .badge.yellow { background: #f5c400; color: #000; border: 1px solid #bbb; }
-
-  /* IMAGE CONTAINER (IMPORTANT FOR CAVITIES) - maps to img-placeholder matching gg.html */
-  .epns-card-image, .img-placeholder {
+  /* Image container */
+  .epns-card-image {
     width: 100%;
     background: #c8c8c8;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-top: 0;
-    position: relative; /* REQUIRED for absolute cavity dots */
+    position: relative;
     overflow: hidden;
     line-height: 0;
+    aspect-ratio: 4/3;
   }
 
-   .epns-card-image img {
+  .epns-card-image img {
     width: 100%;
-    height: auto;
+    height: 100%;
+    object-fit: cover;
     display: block;
   }
 
-  /* PLACEHOLDER */
+  /* Placeholder */
   .epn-image-placeholder {
     width: 100%;
     height: 100%;
@@ -163,9 +133,9 @@
     background: #c8c8c8;
     gap: 4px;
     position: relative;
+    min-height: 180px;
   }
 
-  /* diagonal cross lines for placeholder like gg.html */
   .epn-image-placeholder::before,
   .epn-image-placeholder::after {
     content: '';
@@ -173,25 +143,40 @@
     background: #aaa;
     z-index: 0;
   }
+  
   .epn-image-placeholder::before {
-    width: 100%; height: 1px;
-    top: 50%; left: 0;
+    width: 100%; 
+    height: 1px;
+    top: 50%; 
+    left: 0;
     transform: rotate(36.87deg);
-    transform-origin: left center;
+    transform-origin: center;
   }
+  
   .epn-image-placeholder::after {
-    width: 100%; height: 1px;
-    top: 50%; left: 0;
+    width: 100%; 
+    height: 1px;
+    top: 50%; 
+    left: 0;
     transform: rotate(-36.87deg);
-    transform-origin: left center;
+    transform-origin: center;
   }
 
-  .placeholder-icon, .placeholder-text, .btn-small {
+  .placeholder-icon {
     position: relative;
     z-index: 1;
+    font-size: 32px;
+  }
+  
+  .placeholder-text {
+    position: relative;
+    z-index: 1;
+    font-size: 13px;
+    color: #6b7280;
+    font-weight: 500;
   }
 
-  /* CAVITY DOTS */
+  /* Cavity dots */
   .cavity-dot {
     position: absolute;
     transform: translate(-50%, -50%) translateZ(0);
@@ -277,12 +262,10 @@
     font-weight: 800;
     line-height: 1;
     white-space: nowrap;
-    text-shadow:
-      0 0 3px rgba(0, 0, 0, 0.9),
-      0 1px 2px rgba(0, 0, 0, 0.8);
+    text-shadow: 0 0 3px rgba(0, 0, 0, 0.9), 0 1px 2px rgba(0, 0, 0, 0.8);
   }
 
-  /* CARD BODY */
+  /* Card body */
   .epns-card-body {
     padding: 12px;
     display: flex;
@@ -295,7 +278,7 @@
     font-size: 16px;
   }
 
-  /* CHIP */
+  /* Chips */
   .epns-chip {
     display: inline-flex;
     align-items: center;
@@ -318,7 +301,7 @@
     cursor: pointer;
   }
 
-  /* ACTIONS */
+  /* Actions */
   .epns-card-actions {
     display: flex;
     gap: 8px;
@@ -345,12 +328,12 @@
     color: #dc2626;
   }
 
-  /* EMPTY */
+  /* Empty state */
   .epns-empty {
     color: #888;
   }
 
-  /* SELECT INPUT — matches .epns-input */
+  /* Select input */
   .epn-select-input {
     position: relative;
     min-width: 200px;
@@ -365,7 +348,6 @@
     user-select: none;
     color: #111;
     font-size: inherit;
-    /* arrow indicator */
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -381,7 +363,6 @@
     flex-shrink: 0;
   }
 
-  /* DROPDOWN */
   .epn-select-dropdown {
     display: none;
     position: absolute;
@@ -420,7 +401,7 @@
     background: #f5f5f5;
   }
 
-  /* IMPORT STYLES */
+  /* Import styles */
   .epns-import-btn {
     padding: 8px 14px;
     border-radius: 8px;
@@ -521,28 +502,6 @@
     display: flex;
     justify-content: flex-end;
     gap: 12px;
-  }
-
-  /* PLACEHOLDER */
-  .epn-image-placeholder {
-    height: 180px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    background: #f9fafb;
-    border-bottom: 1px solid #eee;
-    gap: 8px;
-  }
-
-  .placeholder-icon {
-    font-size: 32px;
-  }
-
-  .placeholder-text {
-    font-size: 13px;
-    color: #6b7280;
-    font-weight: 500;
   }
 
   .btn-small {

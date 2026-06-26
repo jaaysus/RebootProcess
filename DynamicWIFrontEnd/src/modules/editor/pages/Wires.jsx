@@ -1,6 +1,4 @@
 import { useState } from 'react';
-import './EPNs.css';
-
 export default function Wires() {
   const [wires, setWires] = useState([]);
 
