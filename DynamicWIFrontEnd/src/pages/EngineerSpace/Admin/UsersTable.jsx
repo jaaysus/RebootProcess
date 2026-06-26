@@ -9,16 +9,6 @@ import UserModals from "../../../components/UserModals";
 
 const emptyFormData = { fullName: "", email: "", password: "", role: "" };
 
-const USER_COLUMNS = [
-  { label: "", style: { width: 40 } },
-  { label: "#" },
-  { label: "Full Name" },
-  { label: "Email" },
-  { label: "Role" },
-  { label: "Status" },
-  { label: "Actions" },
-];
-
 export default function UsersTable() {
   const dispatch = useDispatch();
   const { users, usersLoading, roles, rolesLoading, user: currentUser } = useSelector((s) => s.user);
@@ -56,10 +46,12 @@ export default function UsersTable() {
   const handleInputChange = (e) => setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
 
   const someSelected = selectedIds.length > 0;
+  const allSelected = tableUsers.length > 0 && selectedIds.length === tableUsers.map(getUserId).filter(Boolean).length;
+
   const toggleSelectOne = (id) => setSelectedIds((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
   const toggleSelectAll = () => {
     const allIds = tableUsers.map(getUserId).filter(Boolean);
-    setSelectedIds(selectedIds.length === allIds.length ? [] : allIds);
+    setSelectedIds(allSelected ? [] : allIds);
   };
 
   const openEditModal = (u) => {
@@ -104,6 +96,26 @@ export default function UsersTable() {
     if (!currentUserId) return;
     setSelectedIds((prev) => prev.filter((id) => id !== currentUserId));
   }, [currentUserId]);
+
+  const USER_COLUMNS = [
+    {
+      label: (
+        <input
+          className="form-check-input"
+          type="checkbox"
+          checked={allSelected}
+          onChange={toggleSelectAll}
+        />
+      ),
+      style: { width: 40 },
+    },
+    { label: "#" },
+    { label: "Full Name" },
+    { label: "Email" },
+    { label: "Role" },
+    { label: "Status" },
+    { label: "Actions" },
+  ];
 
   const renderUserRow = (u, idx) => {
     const userId = getUserId(u);
