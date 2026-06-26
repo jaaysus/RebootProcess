@@ -10,6 +10,8 @@ import UsersTable from './pages/EngineerSpace/Admin/UsersTable';
 import OperatorsTable from './pages/EngineerSpace/Admin/OperatorsTable';
 import Editor from './modules/editor/Editor';
 import WorkInstructions from './pages/EngineerSpace/Process/WorkInstructions';
+import PhotoManagement from './modules/editor/pages/EPNs/EPNphotos';
+import EPNphotos from './modules/editor/pages/EPNs/EPNphotos';
 
 function App() {
   return (
@@ -24,6 +26,8 @@ function App() {
       <Route path="/users"     element={<ProtectedRoute requiredRoles={['Admin']}                      ><UsersTable /></ProtectedRoute>} />
       <Route path="/operators" element={<ProtectedRoute requiredRoles={['Admin', 'Process Technician']}><OperatorsTable /></ProtectedRoute>} />
       <Route path="/process"   element={<ProtectedRoute requiredRoles={['Process Technician']}         ><ProcessTechnicianDashboard /></ProtectedRoute>} />
+
+      <Route path="/epn/photos"     element={<ProtectedRoute requiredRoles={['Admin','Process Technician']}><EPNphotos /></ProtectedRoute>} />
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

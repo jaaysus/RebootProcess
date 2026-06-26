@@ -18,7 +18,7 @@ export default function Message({ type = 'error', message = '' }) {
   const icon = type === 'success' ? '✓' : '✕';
 
   return (
-    <div
+    <div 
       className="toast show position-fixed top-0 end-0 m-3 d-flex align-items-center"
       role="alert"
       aria-live="assertive"

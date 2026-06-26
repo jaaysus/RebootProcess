@@ -14,7 +14,7 @@ function OperatorSpace() {
   const [bannerText, setBannerText] = useState('');
   const [badgeNum, setBadgeNum] = useState('');
   const [password, setPassword] = useState('');
-  const [phase, setPhase] = useState('badge'); // badge | password
+  const [phase, setPhase] = useState('badge');
   const [operator, setOperator] = useState(
     JSON.parse(localStorage.getItem('op_user'))
   );
