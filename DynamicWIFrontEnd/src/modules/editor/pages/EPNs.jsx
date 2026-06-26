@@ -369,8 +369,7 @@ function renderCavities(coords) {
         {epns.map(e => (
           <div className="epns-card" key={e.epn}>
             <div className="card-header">
-              <span className="part-num">{e.nodeName || e.epn}</span>
-              <span className="variant">{e.position}</span>
+              <span className="node-name">{e.nodeName || "------"}</span>
             </div>
             <div className="epn-bar">{e.epn}</div>
             {e.badge && (

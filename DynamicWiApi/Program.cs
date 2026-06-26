@@ -19,11 +19,11 @@ builder.Services.AddCors(options =>
     {
         var frontendUrl = builder.Configuration["Cors:FrontendUrl"] ?? "http://localhost:5173";
         policy
-            .WithOrigins(frontendUrl)
+            .WithOrigins(frontendUrl, "http://localhost:5500", "http://127.0.0.1:5500")
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials();
-    });
+            });
 });
 
 // Configure Authentication
