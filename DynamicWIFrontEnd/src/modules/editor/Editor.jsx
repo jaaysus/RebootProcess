@@ -6,6 +6,7 @@ import EPNs from './pages/EPNs/EPNs'
 import Connectors from './pages/Connectors'
 import Wires from './pages/Wires'
 import AppNavbar from '../../components/Navbar'
+import { photoUrl } from '../../redux/slices/epnsSlice'
 
 import './Editor.css'
 
@@ -18,8 +19,10 @@ function Editor() {
   // Called from EPNs/Connectors pages
   function handleCoordinateCavities(row, mode = 'epn') {
     setCavityEditorLoad({
-      photo: row.photo,
+      photo: photoUrl(row.photo),
       epn: row.epn,
+      epnId: row.id, // Add EPN ID for backend API calls
+      cavityCount: row.cavityCount, // Add original cavity count for validation
       connector: row.name || '',
       coordinates: row.coordinates,
       mode,
@@ -68,6 +71,8 @@ function Editor() {
                 fileInputRef={fileInputRef}
                 preloadImage={cavityEditorLoad?.photo}
                 preloadEpn={cavityEditorLoad?.epn}
+                preloadEpnId={cavityEditorLoad?.epnId}
+                preloadCavityCount={cavityEditorLoad?.cavityCount}
                 preloadConnector={cavityEditorLoad?.connector}
                 preloadCoordinates={cavityEditorLoad?.coordinates}
                 editorMode={cavityEditorLoad?.mode}

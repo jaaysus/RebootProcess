@@ -106,6 +106,10 @@ export const sortIndicesForEpnLayout = (indices, cavities) =>
   })
 
 export const computeNumberedCavities = (allCavities, order) => {
+  if (!Array.isArray(allCavities)) {
+    console.warn('computeNumberedCavities: allCavities is not an array', allCavities)
+    return new Map()
+  }
   const indexed = allCavities.map((cavity, index) => ({ cavity, index }))
 
   indexed.sort((a, b) => {
@@ -203,6 +207,7 @@ export const getSelectionBounds = (indices, cavities) => {
 /**
  * Hydrate editor cavities from persisted coordinate map (image space).
  * Scales from saved image dimensions to current natural size when they differ.
+ * Handles both lowercase (backend response) and capitalized (backend DTO) property names.
  */
 export const coordinateMapToCavities = (coordinateMap, naturalWidth, naturalHeight) => {
   if (!coordinateMap || typeof coordinateMap !== 'object') return []
@@ -220,11 +225,12 @@ export const coordinateMapToCavities = (coordinateMap, naturalWidth, naturalHeig
   return entries.map(({ value: v }) => {
     const colors = v.colors ? [...v.colors] : [...DEFAULT_CAVITY_COLORS]
 
+    // Handle both lowercase (backend response) and capitalized (backend DTO) property names
     return {
-      x: Math.round(v.x * sx),
-      y: Math.round(v.y * sy),
-      size: Math.round(v.size * sx),
-      shape: v.shape || 'round',
+      x: Math.round((v.x || v.X) * sx),
+      y: Math.round((v.y || v.Y) * sy),
+      size: Math.round((v.size || v.Size) * sx),
+      shape: (v.shape || v.Shape) || 'round',
       colors,
     }
   })

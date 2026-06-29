@@ -5,7 +5,10 @@ import { EpnPanel } from './EpnPanel'
 import { useCavityEditor } from './useCavityEditor'
 
 export function CavityEditor(props) {
-  const editor = useCavityEditor(props)
+  const editor = useCavityEditor({
+    ...props,
+    preloadEpnId: props.preloadEpnId
+  })
 
   return (
     <div className="workspace-grid">

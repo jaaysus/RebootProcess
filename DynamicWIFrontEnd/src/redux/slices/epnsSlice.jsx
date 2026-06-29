@@ -55,7 +55,7 @@ export const deleteEpn = createAsyncThunk('epns/delete', async (id, { rejectWith
 })
 
 export const setCavities = createAsyncThunk('epns/setCavities', async ({ id, cavities }, { rejectWithValue }) => {
-  // cavities: { "1": { x, y, size, shape }, ... }
+  // cavities: { "1": { X, Y, Size, Shape }, ... }
   try {
     const res = await api.patch(`/epn/${id}/cavities`, cavities)
     return res.data
@@ -215,6 +215,7 @@ export default epnsSlice.reducer
 
 export const selectEpns          = s => s.epns.items
 export const selectEpnById       = id => s => s.epns.items.find(e => e.id === id)
+export const selectEpnByCode     = code => s => s.epns.items.find(e => e.epn === code)
 export const selectEpnsLoading   = s => s.epns.loading
 export const selectEpnsError     = s => s.epns.error
 export const selectPhotos        = s => s.epns.photos

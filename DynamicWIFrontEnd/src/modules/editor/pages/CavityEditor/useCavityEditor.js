@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useDispatch } from 'react-redux'
 import { updateEPN } from '../epnsStore'
 import { updateConnector } from '../connectorsStore'
+import { setCavities as setCavitiesAction } from '../../../../redux/slices/epnsSlice'
 import {
   DEFAULT_CAVITY_COLORS,
   DEFAULT_CAVITY_SIZE,
@@ -28,11 +30,14 @@ export function useCavityEditor({
   fileInputRef,
   preloadImage,
   preloadEpn,
+  preloadEpnId,
+  preloadCavityCount,
   preloadConnector,
   preloadCoordinates,
   editorMode = 'full',
   onSaved,
 }) {
+  const dispatch = useDispatch()
   const hasAppliedInitialPreloadRef = useRef(false)
   const canEditGeometry = editorMode !== 'connector'
   const canEditColors = editorMode !== 'epn'
@@ -847,12 +852,23 @@ export function useCavityEditor({
     })
   }
 
-const handleSaveCoordinates = () => {
+const handleSaveCoordinates = async () => {
   const epnKey = epnInfo.epn.trim()
   if (!epnKey) { setSaveStatus('error'); return }
   if (cavities.length === 0) { setSaveStatus('error'); return }
   if (!imageResolution?.width) { setSaveStatus('error'); return }
   if (editorMode === 'connector' && !epnInfo.connector.trim()) { setSaveStatus('error'); return }
+
+  console.log('Current cavities count:', cavities.length)
+  console.log('Preload EPN ID:', preloadEpnId)
+  console.log('Original cavity count:', preloadCavityCount)
+
+  // Check if cavity count matches the expected count
+  if (preloadCavityCount && cavities.length !== preloadCavityCount) {
+    console.error(`Cavity count mismatch: expected ${preloadCavityCount}, got ${cavities.length}`)
+    setSaveStatus('error')
+    return
+  }
 
   const cavityEntries = {}
   numberedCavities.forEach((number, index) => {
@@ -865,6 +881,7 @@ const handleSaveCoordinates = () => {
         shape: cavity.shape,
       }
 
+      // Only include colors for localStorage, not for backend API
       if (canEditColors) {
         entry.colors = cavity.colors || DEFAULT_CAVITY_COLORS
       }
@@ -884,12 +901,44 @@ const handleSaveCoordinates = () => {
   if (editorMode === 'connector') {
     updateConnector(epnInfo.connector.trim(), updatePayload)
   } else {
-    updateEPN(epnKey, { ...updatePayload, needsCoordination: false })
-  }
+    // Use the EPN ID if available for backend API call
+    if (preloadEpnId) {
+      try {
+        // Remove colors from cavity entries for backend API (not supported by backend model)
+        // Convert string keys to integers for backend API
+        // Use capitalized property names to match backend CavityDto
+        const backendCavityEntries = {}
+        Object.keys(cavityEntries).forEach(key => {
+          const { x, y, size, shape } = cavityEntries[key]
+          backendCavityEntries[parseInt(key)] = { X: x, Y: y, Size: size, Shape: shape }
+        })
+        
+        console.log('Sending cavities to backend:', {
+          id: preloadEpnId,
+          cavityCount: Object.keys(backendCavityEntries).length,
+          cavities: backendCavityEntries
+        })
 
-  setSaveStatus('saved')
-  setTimeout(() => setSaveStatus(null), 2500)
-  onSaved?.()
+        await dispatch(setCavitiesAction({
+          id: preloadEpnId,
+          cavities: backendCavityEntries
+        })).unwrap()
+        setSaveStatus('saved')
+        setTimeout(() => setSaveStatus(null), 2500)
+        onSaved?.()
+      } catch (error) {
+        console.error('Failed to save cavities:', error)
+        console.error('Error response:', error.response?.data)
+        setSaveStatus('error')
+      }
+    } else {
+      // Fallback to localStorage if EPN ID not available
+      updateEPN(epnKey, { ...updatePayload, needsCoordination: false })
+      setSaveStatus('saved')
+      setTimeout(() => setSaveStatus(null), 2500)
+      onSaved?.()
+    }
+  }
 }
 
   const handleMouseMove = (e) => {
