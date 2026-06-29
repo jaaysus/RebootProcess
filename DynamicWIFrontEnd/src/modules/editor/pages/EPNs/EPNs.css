@@ -59,6 +59,12 @@
     width: 100%;
   }
 
+  .epns-success {
+    color: #10b981;
+    font-weight: 600;
+    width: 100%;
+  }
+
   /* GRID */
   .epns-grid {
     display: grid;
@@ -558,203 +564,28 @@
     background: #f3f4f6;
   }
 
-  /* TABS */
-  .epns-tabs {
+  /* Bootstrap-like utility classes for button group */
+  .d-flex {
     display: flex;
-    gap: 10px;
   }
 
-  .epns-tabs button {
-    padding: 8px 18px;
-    border: 1px solid #d4cfc4;
-    background: #f3efe6;
-    color: #6b685e;
-    border-radius: 6px;
-    cursor: pointer;
-    font-weight: 500;
-    transition: all 0.2s ease;
-  }
-
-  .epns-tabs button:hover {
-    background: #e9e3d6;
-  }
-
-  .epns-tabs button.active {
-    background: #2c3e2b;
-    color: #ece8df;
-    border-color: #2c3e2b;
-  }
-
-  /* photo gallery */
-  
-  .component-page {
-    max-width: 1200px;
-    /* margin: 40px auto; */
-    /* padding: 20px; */
-    font-family: Arial, sans-serif;
-  }
-
-  .component-upload-box {
-    display: flex;
-    justify-content: flex-end;
-    margin-bottom: 30px;
-  }
-
-  .component-upload-btn {
-    display: flex;
-    align-items: center;
+  .gap-2 {
     gap: 8px;
-    padding: 12px 24px;
-    background: #2c3e2b;
-    color: #ece8df;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 12px;
-    font-weight: 500;
-    letter-spacing: 1px;
-    border: none;
   }
 
-  .component-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 20px;
+  .flex-wrap {
+    flex-wrap: wrap;
   }
 
-  .component-card {
-    border: 1px solid #ddd;
-    border-radius: 10px;
-    overflow: hidden;
-    background: #fff;
-    position: relative;
-  }
-
-  .component-image {
-    width: 100%;
-    height: 260px;
-    object-fit: contain;
-    display: block;
-    background: #f9f9f9;
-  }
-
-  .component-size-overlay {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    background: rgba(0, 0, 0, 0.3);
-    color: rgba(255, 255, 255, 0.8);
-    padding: 3px 6px;
-    border-radius: 4px;
-    font-size: 11px;
-    font-weight: 500;
-    pointer-events: none;
-  }
-
-  .component-delete-overlay {
-    position: absolute;
-    bottom: 8px;
-    left: 8px;
-    border: none;
-    background: none;
+  .btn-group {
     display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    color: #d9534f;
   }
 
-  /* Modal styles */
-  .component-modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.45);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
+  .border-start {
+    border-left: 1px solid rgba(0, 0, 0, 0.2);
   }
 
-  .component-modal-box {
-    background: #fff;
-    border-radius: 12px;
-    padding: 32px 28px 24px;
-    width: 100%;
-    max-width: 360px;
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 12px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.15);
-  }
-
-  .component-modal-close {
-    position: absolute;
-    top: 12px;
-    right: 12px;
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: #aaa;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 4px;
-  }
-
-  .component-modal-icon {
-    width: 56px;
-    height: 56px;
-    border-radius: 50%;
-    background: #fdf0f0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .component-modal-title {
-    margin: 0;
-    font-size: 17px;
-    font-weight: 700;
-    color: #222;
-  }
-
-  .component-modal-text {
-    margin: 0;
-    font-size: 13px;
-    color: #777;
-    text-align: center;
-    line-height: 1.6;
-  }
-
-  .component-modal-actions {
-    display: flex;
-    gap: 10px;
-    width: 100%;
-    margin-top: 8px;
-  }
-
-  .component-modal-cancel {
-    flex: 1;
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 7px;
-    background: #fff;
-    color: #555;
-    font-weight: 600;
-    font-size: 13px;
-    cursor: pointer;
-  }
-
-  .component-modal-confirm {
-    flex: 1;
-    padding: 10px;
-    border: none;
-    border-radius: 7px;
-    background: #d9534f;
-    color: #fff;
-    font-weight: 600;
-    font-size: 13px;
-    cursor: pointer;
+  .d-none {
+    display: none;
   }
 }
