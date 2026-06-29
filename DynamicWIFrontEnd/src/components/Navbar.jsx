@@ -98,12 +98,6 @@ export default function AppNavbar() {
                 </span>
               </li>
               <li className="nav-item">
-                <span className="nav-link" style={{ cursor: 'pointer' }} onClick={() => navigate('/epn/photos')} title="Photos">
-                  <span className="nav-text">Photos</span>
-                  <FaProjectDiagram className="nav-icon" aria-hidden="true" />
-                </span>
-              </li>
-              <li className="nav-item">
                 <span className="nav-link" style={{ cursor: 'pointer' }} onClick={() => navigate('/editor/connectors')} title="Connectors">
                   <span className="nav-text">Connectors</span>
                   <FaPlug className="nav-icon" aria-hidden="true" />
