@@ -11,6 +11,7 @@ import {
 } from '../../../../redux/slices/epnsSlice'
 import EPNForm from './EPNForm'
 import EPNCard from './EPNCard'
+import EPNphotos from './EPNphotos'
 import './EPNs.css'
 
 export default function EPNs({ onCoordinateCavities }) {
@@ -21,6 +22,7 @@ export default function EPNs({ onCoordinateCavities }) {
 
   const [error, setError] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
+  const [tab, setTab] = useState('epns')
 
   useEffect(() => {
     dispatch(fetchEpns())
@@ -94,31 +96,53 @@ export default function EPNs({ onCoordinateCavities }) {
   return (
     <div className="epns-page">
       <div className="epns-header">
-        <h1 className="epns-title">EPNs</h1>
+        <div className="epns-tabs">
+          <button
+            className={tab === 'epns' ? 'active' : ''}
+            onClick={() => setTab('epns')}
+          >
+            EPNs
+          </button>
+
+          <button
+            className={tab === 'photos' ? 'active' : ''}
+            onClick={() => setTab('photos')}
+          >
+            Photo Gallery
+          </button>
+        </div>
       </div>
 
-      <EPNForm 
-        onSubmit={handleAdd} 
-        loading={loading} 
-        error={error} 
-        successMessage={successMessage}
-        onImport={handleImport}
-      />
-
-      <div className="epns-grid">
-        {epns.length === 0 && !loading && (
-          <div className="epns-empty">No EPNs found</div>
-        )}
-
-        {epns.map(epn => (
-          <EPNCard
-            key={epn.id}
-            epn={epn}
-            onCoordinate={onCoordinateCavities}
-            onDelete={handleDelete}
+      {tab === 'epns' && (
+        <>
+          <EPNForm 
+            onSubmit={handleAdd} 
+            loading={loading} 
+            error={error} 
+            successMessage={successMessage}
+            onImport={handleImport}
           />
-        ))}
-      </div>
+
+          <div className="epns-grid">
+            {epns.length === 0 && !loading && (
+              <div className="epns-empty">No EPNs found</div>
+            )}
+
+            {epns.map(epn => (
+              <EPNCard
+                key={epn.id}
+                epn={epn}
+                onCoordinate={onCoordinateCavities}
+                onDelete={handleDelete}
+              />
+            ))}
+          </div>
+        </>
+      )}
+
+      {tab === 'photos' && (
+        <EPNphotos />
+      )}
     </div>
   )
 }
