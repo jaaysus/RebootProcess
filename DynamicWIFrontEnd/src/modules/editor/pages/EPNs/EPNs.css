@@ -60,6 +60,12 @@
     width: 100%;
   }
 
+  .epns-success {
+    color: #10b981;
+    font-weight: 600;
+    width: 100%;
+  }
+
   /* GRID */
   .epns-grid {
     display: grid;
@@ -555,5 +561,30 @@
 
   .btn-small:hover {
     background: #f3f4f6;
+  }
+
+  /* Bootstrap-like utility classes for button group */
+  .d-flex {
+    display: flex;
+  }
+
+  .gap-2 {
+    gap: 8px;
+  }
+
+  .flex-wrap {
+    flex-wrap: wrap;
+  }
+
+  .btn-group {
+    display: flex;
+  }
+
+  .border-start {
+    border-left: 1px solid rgba(0, 0, 0, 0.2);
+  }
+
+  .d-none {
+    display: none;
   }
 }
