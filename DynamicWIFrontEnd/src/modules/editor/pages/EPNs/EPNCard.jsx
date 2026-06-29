@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { photoUrl } from '../../../../redux/slices/epnsSlice'
 import CavityRenderer from './CavityRenderer'
+import { Trash2, Target } from 'lucide-react'
 import './EPNs.css'
 
 export default function EPNCard({ epn, onCoordinate, onDelete }) {
@@ -8,11 +9,6 @@ export default function EPNCard({ epn, onCoordinate, onDelete }) {
 
   return (
     <div className="epns-card">
-      <div className="card-header">
-        <span className="node-name">{epn.nodeName || '------'}</span>
-      </div>
-      <div className="epn-bar">{epn.epn}</div>
-
       <div className="epns-card-image">
         {!imageError && epn.photo ? (
           <img
@@ -25,27 +21,35 @@ export default function EPNCard({ epn, onCoordinate, onDelete }) {
             <span className="placeholder-text">No image</span>
           </div>
         )}
+        <span className="epn-node-name">
+          {epn.nodeName || '------'}
+        </span>
         <CavityRenderer epn={epn} />
       </div>
 
-      <div className="epns-card-body">
-        <div className="epns-card-actions">
-          <button
-            className="btn primary"
-            onClick={() => onCoordinate?.(epn, 'epn')}
-            style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-          >
-            Coordinate
-            {epn.needsCoordination && (
-              <svg width="14" height="14" viewBox="0 0 14 14" style={{ marginLeft: 2 }}>
-                <polygon points="7,2 13,12 1,12" fill="#e67e22" />
-              </svg>
-            )}
-          </button>
-          <button className="btn danger" onClick={() => onDelete(epn)}>
-            Delete
-          </button>
-        </div>
+      <div className="epn-bottom">
+        <button
+          className="epn-delete-btn"
+          onClick={() => onDelete(epn)}
+          title="Delete EPN"
+          aria-label="Delete EPN"
+        >
+          <Trash2 size={16} />
+        </button>
+        
+        <button
+          className="epn-coordinate-btn"
+          onClick={() => onCoordinate?.(epn, 'epn')}
+          title="Coordinate cavities"
+          aria-label="Coordinate cavities"
+        >
+          <Target size={16} />
+          {epn.needsCoordination && (
+            <span className="needs-coord-indicator" />
+          )}
+        </button>
+        
+        <span className="epn-name">{epn.epn}</span>
       </div>
     </div>
   )
