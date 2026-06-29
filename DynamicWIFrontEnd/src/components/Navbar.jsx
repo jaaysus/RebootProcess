@@ -2,7 +2,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { logoutUser } from '../redux/slices/userSlice';
 import { useNavigate } from 'react-router-dom';
 import { MdDashboard } from 'react-icons/md';
-import { FaUsers, FaCarSide, FaTools, FaFileAlt, FaList, FaPlug, FaProjectDiagram } from 'react-icons/fa';
+import { FaUsers, FaCarSide, FaTools, FaFileAlt, FaList, FaPlug, FaProjectDiagram, FaTable } from 'react-icons/fa';
 import './Navbar.css';
 
 export default function AppNavbar() {
@@ -85,6 +85,12 @@ export default function AppNavbar() {
 
           {(role === 'Admin' || role === 'Process Technician') && (
             <>
+              <li className="nav-item">
+                <span className="nav-link" style={{ cursor: 'pointer' }} onClick={() => navigate('/module-lists')} title="Module Lists">
+                  <span className="nav-text">Module Lists</span>
+                  <FaTable className="nav-icon" aria-hidden="true" />
+                </span>
+              </li>
               <li className="nav-item">
                 <span className="nav-link" style={{ cursor: 'pointer' }} onClick={() => navigate('/work-instructions')} title="Work Instructions">
                   <span className="nav-text">Work Instructions</span>
