@@ -45,7 +45,6 @@ export default function EPNphotos() {
 
   const photos = useSelector(selectPhotos);
   const loading = useSelector(selectPhotosLoading);
-  console.log("Photos:", photos);
 
   useEffect(() => {
     dispatch(fetchPhotos());
@@ -67,6 +66,13 @@ export default function EPNphotos() {
       dispatch(deletePhoto(deleteId));
       setDeleteId(null);
     }
+  };
+
+  const getDisplayName = (filePath) => {
+    if (!filePath) return "";
+    const fileName = filePath.split("/").pop();
+    return fileName.replace(/_\d{14}(?=\.[^.]+$)/, "")
+    .replace(/\.[^.]+$/, "");    
   };
 
   return (
@@ -105,12 +111,18 @@ export default function EPNphotos() {
               <div key={photo.id} className="component-card">
                 <img
                   src={photoUrl(photo.filePath)}
-                  alt=""
+                  alt={getDisplayName(photo.filePath)}
                   className="component-image"
                 />
+
+                <div className="component-file-name">
+                  {getDisplayName(photo.filePath)}
+                </div>
+
                 <span className="component-size-overlay">
                   {photo.photoWidth} × {photo.photoHeight}
                 </span>
+
                 <button
                   className="component-delete-overlay"
                   onClick={() => handleDeleteClick(photo.id)}

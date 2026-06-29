@@ -789,3 +789,16 @@
     cursor: pointer;
   }
 }
+.component-file-name {
+  width: 100%;
+  padding: 8px 10px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #555;
+  text-align: right;
+  background: #fff;
+  /* white-space: nowrap; */
+  /* overflow: hidden;
+  text-overflow: ellipsis;
+  box-sizing: border-box; */
+}
