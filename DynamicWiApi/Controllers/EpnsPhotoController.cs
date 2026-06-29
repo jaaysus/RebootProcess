@@ -149,7 +149,8 @@ public class EpnPhotoController : ControllerBase
                 $"Photo is still referenced by {photo.Epns.Count} EPN(s): " +
                 string.Join(", ", photo.Epns.Select(e => e.EpnCode)));
 
-        var fullPath = Path.Combine(_env.WebRootPath, photo.FilePath.TrimStart('/'));
+        var fileName = Path.GetFileName(photo.FilePath);
+        var fullPath = Path.Combine(GetPhotosDirectory(), fileName);
         if (System.IO.File.Exists(fullPath))
             System.IO.File.Delete(fullPath);
 
@@ -159,9 +160,17 @@ public class EpnPhotoController : ControllerBase
         return NoContent();
     }
 
+
+
     // ════════════════════════════════════════════════════════════════════════
     //  Private helpers
     // ════════════════════════════════════════════════════════════════════════
+
+    private string GetPhotosDirectory()
+    {
+        // Use epn-photos folder in backend project root (outside wwwroot) to survive frontend builds
+        return Path.Combine(_env.ContentRootPath, PhotoSubfolder);
+    }
 
     private async Task<(EpnPhoto? Photo, string? Error)> SavePhoto(
         IFormFile? file, int width, int height)
@@ -172,7 +181,7 @@ public class EpnPhotoController : ControllerBase
         if (!AllowedTypes.Contains(file.ContentType, StringComparer.OrdinalIgnoreCase))
             return (null, $"'{file.FileName}': only JPEG, PNG and WebP are accepted.");
 
-        var uploadsDir = Path.Combine(_env.WebRootPath, PhotoSubfolder);
+        var uploadsDir = GetPhotosDirectory();
         Directory.CreateDirectory(uploadsDir);
 
         // Keep the original file name so EPN auto-matching works by name.

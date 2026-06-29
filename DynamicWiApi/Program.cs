@@ -4,6 +4,7 @@ using DynamicWiApi.CLI;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using System.IO;
 
 
 
@@ -47,6 +48,16 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// Configure photos directory before building app
+var photosDirectory = builder.Configuration["PhotosDirectory"];
+if (string.IsNullOrEmpty(photosDirectory))
+{
+    // Default to epn-photos folder in backend project root (outside wwwroot)
+    photosDirectory = Path.Combine(Directory.GetCurrentDirectory(), "epn-photos");
+}
+
+Directory.CreateDirectory(photosDirectory);
+
 var app = builder.Build();
 
 
@@ -65,6 +76,26 @@ await AdminCli.HandleAsync(args, db);
 
 app.UseDefaultFiles();
 app.UseStaticFiles();
+
+// Serve photos from custom directory outside wwwroot to survive frontend builds
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(photosDirectory),
+    RequestPath = "/epn-photos",
+    OnPrepareResponse = ctx =>
+    {
+        // Set proper content types for images
+        var extension = Path.GetExtension(ctx.File.Name).ToLowerInvariant();
+        ctx.Context.Response.ContentType = extension switch
+        {
+            ".jpg" or ".jpeg" => "image/jpeg",
+            ".png" => "image/png",
+            ".webp" => "image/webp",
+            ".gif" => "image/gif",
+            _ => ctx.Context.Response.ContentType
+        };
+    }
+});
 
 
 app.UseCors("AllowFrontend");
