@@ -9,6 +9,12 @@ export default function EPNCard({ epn, onCoordinate, onDelete }) {
 
   return (
     <div className="epns-card">
+      <div className="epn-top">
+        <span className="epn-node-name">
+          {epn.nodeName || '------'}
+        </span>
+      </div>
+
       <div className="epns-card-image">
         {!imageError && epn.photo ? (
           <img
@@ -21,9 +27,6 @@ export default function EPNCard({ epn, onCoordinate, onDelete }) {
             <span className="placeholder-text">No image</span>
           </div>
         )}
-        <span className="epn-node-name">
-          {epn.nodeName || '------'}
-        </span>
         <CavityRenderer epn={epn} />
       </div>
 
@@ -36,7 +39,7 @@ export default function EPNCard({ epn, onCoordinate, onDelete }) {
         >
           <Trash2 size={16} />
         </button>
-        
+
         <button
           className="epn-coordinate-btn"
           onClick={() => onCoordinate?.(epn, 'epn')}
@@ -48,7 +51,7 @@ export default function EPNCard({ epn, onCoordinate, onDelete }) {
             <span className="needs-coord-indicator" />
           )}
         </button>
-        
+
         <span className="epn-name">{epn.epn}</span>
       </div>
     </div>

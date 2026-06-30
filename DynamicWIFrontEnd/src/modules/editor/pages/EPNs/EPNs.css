@@ -86,7 +86,6 @@
   /* IMAGE CONTAINER - matching component-image */
   .epns-card-image {
     width: 100%;
-    height: 260px;
     background: #f9f9f9;
     position: relative;
     overflow: hidden;
@@ -95,15 +94,14 @@
 
   .epns-card-image img {
     width: 100%;
-    height: 100%;
-    object-fit: contain;
+    height: auto;
     display: block;
   }
 
   /* PLACEHOLDER */
   .epn-image-placeholder {
     width: 100%;
-    height: 100%;
+    min-height: 200px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -147,22 +145,24 @@
     font-weight: 500;
   }
 
+  .epn-top {
+    display: flex;
+    align-items: center;
+    padding: 8px 10px;
+    background: #fff;
+    border-bottom: 1px solid #ddd;
+  }
+
   .epn-node-name {
-    position: absolute;
-    top: 10px;
-    left: 8px;
-    color: #555;       
+    color: #555;
     font-size: 13px;
     font-weight: 500;
-    pointer-events: none;
-    z-index: 5;
-    text-shadow: none; 
   }
 
   /* Badge (BEV / 1+3 / 3 etc.) */
   .badge {
     position: absolute;
-    top: 52px;
+    top: 8px;
     left: 8px;
     padding: 1px 6px;
     border-radius: 3px;
@@ -617,8 +617,7 @@
 
   .component-image {
     width: 100%;
-    height: 260px;
-    object-fit: contain;
+    height: auto;
     display: block;
     background: #f9f9f9;
   }
