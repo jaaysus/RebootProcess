@@ -18,15 +18,22 @@ function Editor() {
 
   // Called from EPNs/Connectors pages
   function handleCoordinateCavities(row, mode = 'epn') {
-    setCavityEditorLoad({
+    console.log('row received:', row)
+    const load = {
       photo: photoUrl(row.photo),
       epn: row.epn,
       epnId: row.id, // Add EPN ID for backend API calls
       cavityCount: row.cavityCount, // Add original cavity count for validation
       connector: row.name || '',
-      coordinates: row.coordinates,
+      coordinates: {
+        cavities: row.cavities,
+        imageWidth: row.photoWidth,
+        imageHeight: row.photoHeight,
+      },
       mode,
-    })
+    }
+    console.log('cavityEditorLoad built:', load)
+    setCavityEditorLoad(load)
 
     navigate('/editor/cavity-editor')
   }

@@ -127,8 +127,9 @@ export default function EPNs({ onCoordinateCavities }) {
             {epns.length === 0 && !loading && (
               <div className="epns-empty">No EPNs found</div>
             )}
-
+            
             {epns.map(epn => (
+              console.log('EPN clicked:', epn),
               <EPNCard
                 key={epn.id}
                 epn={epn}

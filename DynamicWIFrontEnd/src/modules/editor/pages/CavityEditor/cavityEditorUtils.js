@@ -211,6 +211,7 @@ export const getSelectionBounds = (indices, cavities) => {
  */
 export const coordinateMapToCavities = (coordinateMap, naturalWidth, naturalHeight) => {
   if (!coordinateMap || typeof coordinateMap !== 'object') return []
+  if (!coordinateMap.cavities || typeof coordinateMap.cavities !== 'object') return []
 
   const refW = coordinateMap.imageWidth || naturalWidth
   const refH = coordinateMap.imageHeight || naturalHeight
