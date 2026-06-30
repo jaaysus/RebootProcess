@@ -13,6 +13,7 @@ public class AppDbContext : DbContext
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<ModuleList> ModuleLists => Set<ModuleList>();
     public DbSet<WireData> WireDatas => Set<WireData>();
+    public DbSet<Composite> Composites => Set<Composite>();
 
     public DbSet<Epn> Epns => Set<Epn>();
     public DbSet<EpnPhoto> EpnPhotos => Set<EpnPhoto>();
@@ -45,5 +46,16 @@ public class AppDbContext : DbContext
             .WithMany(p => p.Epns)
             .HasForeignKey(e => e.PhotoId)
             .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<Composite>()
+            .HasIndex(c => c.CompositeCode)
+            .IsUnique();
+
+        // Configure ModuleList-User relationship without cascade delete
+        modelBuilder.Entity<ModuleList>()
+            .HasOne(m => m.Uploader)
+            .WithMany()
+            .HasForeignKey(m => m.UploadedBy)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

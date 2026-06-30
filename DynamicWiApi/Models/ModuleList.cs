@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace DynamicWiApi.Models
 {
@@ -8,14 +9,18 @@ namespace DynamicWiApi.Models
         public int Id { get; set; }
 
         [Required]
-        public int LjsOrd { get; set; }
+        [MaxLength(255)]
+        public string FileName { get; set; } = string.Empty;
 
         [Required]
-        [MaxLength(100)]
-        public string Module { get; set; } = string.Empty;
+        public string FileContent { get; set; } = string.Empty;
 
-        [Required]
-        [MaxLength(200)]
-        public string Composite { get; set; } = string.Empty;
+        public DateTime UploadDate { get; set; } = DateTime.UtcNow;
+
+        public Guid? UploadedBy { get; set; }
+
+        // Navigation property for the user who uploaded the file
+        [ForeignKey("UploadedBy")]
+        public User? Uploader { get; set; }
     }
 }
