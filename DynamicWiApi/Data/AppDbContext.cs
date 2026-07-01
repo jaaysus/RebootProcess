@@ -8,12 +8,13 @@ public class AppDbContext : DbContext
     public AppDbContext(DbContextOptions<AppDbContext> options)
         : base(options) { }
 
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<User> Users => Set<User>();
     public DbSet<Operator> Operators => Set<Operator>();
-    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
-    public DbSet<ModuleList> ModuleLists => Set<ModuleList>();
-    public DbSet<WireData> WireDatas => Set<WireData>();
     public DbSet<Composite> Composites => Set<Composite>();
+    public DbSet<ModuleList> ModuleLists => Set<ModuleList>();
+    public DbSet<ModuleListEntry> ModuleListEntries => Set<ModuleListEntry>();
+    public DbSet<WireData> WireDatas => Set<WireData>();
 
     public DbSet<Epn> Epns => Set<Epn>();
     public DbSet<EpnPhoto> EpnPhotos => Set<EpnPhoto>();
@@ -51,11 +52,16 @@ public class AppDbContext : DbContext
             .HasIndex(c => c.CompositeCode)
             .IsUnique();
 
-        // Configure ModuleList-User relationship without cascade delete
         modelBuilder.Entity<ModuleList>()
             .HasOne(m => m.Uploader)
             .WithMany()
             .HasForeignKey(m => m.UploadedBy)
             .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<ModuleList>()
+            .HasMany(m => m.Entries)
+            .WithOne(e => e.ModuleList)
+            .HasForeignKey(e => e.ModuleListId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

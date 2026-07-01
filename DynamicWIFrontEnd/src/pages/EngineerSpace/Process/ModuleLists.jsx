@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import {
   FaTable,
   FaEdit,
@@ -6,99 +7,152 @@ import {
   FaUpload,
   FaPlus,
   FaEye,
-  FaTimes,
 } from "react-icons/fa";
 import "bootstrap/dist/css/bootstrap.min.css";
 import AppNavbar from "../../../components/Navbar";
 
-// Empty composite form
-const emptyComposite = { composite: "", compositeCode: "" };
+import {
+  fetchComposites,
+  createComposite,
+  updateComposite,
+  deleteComposite,
+  selectComposites,
+  clearError as clearCompositeError,
+} from "../../../redux/slices/compositeSlice";
 
-// Composite table columns (used in modal)
+import {
+  fetchModuleLists,
+  fetchModuleListById,
+  uploadModuleList,
+  deleteModuleList,
+  selectModuleLists,
+  selectSelectedModuleList,
+  selectModuleListsUploading,
+  clearSelected,
+} from "../../../redux/slices/moduleListsSlice";
+
+const emptyComposite = { compositeName: "", compositeCode: "" };
+
 const COMPOSITE_COLUMNS = [
   { label: "Composite" },
   { label: "Composite Code" },
   { label: "Actions", style: { width: 100 } },
 ];
 
-// Module list file table columns
 const MODULE_LIST_COLUMNS = [
   { label: "File Name" },
   { label: "Upload Date" },
+  { label: "Entries" },
+  { label: "Composite(s)" },
   { label: "Actions", style: { width: 100 } },
 ];
 
+
+
+const getPreviewColumns = (showFull) => [
+  { label: "Composite" },
+  { label: "#" },
+  { label: "Quantity" },
+  { label: "Module", clickable: true, showFull },
+  { label: "CPN" },
+];
+
 export default function ModuleLists() {
-  // Composite state
-  const [composites, setComposites] = useState([]);
+  const dispatch = useDispatch();
+
+  // Redux state
+  const composites = useSelector(selectComposites);
+  const moduleListFiles = useSelector(selectModuleLists);
+  const selectedModuleList = useSelector(selectSelectedModuleList);
+  const uploadingModuleList = useSelector(selectModuleListsUploading);
+
+  // Composite modal/form state
   const [compositeForm, setCompositeForm] = useState(emptyComposite);
   const [selectedComposite, setSelectedComposite] = useState(null);
-  const [showCompositeAdd, setShowCompositeAdd] = useState(false);
   const [showCompositeEdit, setShowCompositeEdit] = useState(false);
   const [showCompositeDelete, setShowCompositeDelete] = useState(false);
   const [showCompositesModal, setShowCompositesModal] = useState(false);
 
-  // Module list file state
-  const [moduleListFiles, setModuleListFiles] = useState([]);
+  // Module list state
   const [moduleListFile, setModuleListFile] = useState(null);
-  const [uploadingModuleList, setUploadingModuleList] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
-  const [previewContent, setPreviewContent] = useState("");
-  const [previewFileName, setPreviewFileName] = useState("");
+  const [showModuleListDelete, setShowModuleListDelete] = useState(false);
+  const [selectedModuleListForDelete, setSelectedModuleListForDelete] = useState(null);
+  // Preview Modal state
+  const [showFullModule, setShowFullModule] = useState(false);
+  const truncateModule = (value) => {
+    if (!value || value.length <= 4) return value;
+    return value.slice(3, -1);
+  };
 
   const [error, setError] = useState("");
 
-  // Composite CRUD handlers
+  useEffect(() => {
+    dispatch(fetchComposites());
+    dispatch(fetchModuleLists());
+  }, [dispatch]);
+
+  // ── Composite handlers ─────────────────────────────────────────────────
   const handleCompositeInput = (e) => {
     const { name, value } = e.target;
-    // Only allow digits for composite code (preserves leading zeros), allow empty string
     if (name === "compositeCode" && value !== "" && !/^\d+$/.test(value)) {
       return;
     }
     setCompositeForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleAddComposite = () => {
-    if (!compositeForm.composite || !compositeForm.compositeCode) {
+  const handleAddComposite = async () => {
+    if (!compositeForm.compositeName || !compositeForm.compositeCode) {
       setError("Please fill in both composite name and code.");
       return;
     }
-    const newComposite = {
-      id: Date.now(),
+    const padded = {
       ...compositeForm,
+      compositeCode: compositeForm.compositeCode.padStart(3, "0"),
     };
-    setComposites([...composites, newComposite]);
-    setCompositeForm(emptyComposite);
-    setShowCompositeAdd(false);
-    setError("");
+    const result = await dispatch(createComposite(padded));
+    if (createComposite.fulfilled.match(result)) {
+      setCompositeForm(emptyComposite);
+      setError("");
+    } else {
+      setError(result.payload || "Failed to create composite.");
+    }
   };
 
-  const handleEditComposite = () => {
+  const handleEditComposite = async () => {
     if (!selectedComposite) return;
-    setComposites(
-      composites.map((c) =>
-        c.id === selectedComposite.id
-          ? { ...c, ...compositeForm }
-          : c
-      )
+    const padded = {
+      ...compositeForm,
+      compositeCode: compositeForm.compositeCode.padStart(3, "0"),
+    };
+    const result = await dispatch(
+      updateComposite({ id: selectedComposite.id, body: { id: selectedComposite.id, ...padded } })
     );
-    setShowCompositeEdit(false);
-    setSelectedComposite(null);
-    setCompositeForm(emptyComposite);
-    setError("");
+    if (updateComposite.fulfilled.match(result)) {
+      setShowCompositeEdit(false);
+      setSelectedComposite(null);
+      setCompositeForm(emptyComposite);
+      setError("");
+    } else {
+      setError(result.payload || "Failed to update composite.");
+    }
   };
 
-  const handleDeleteComposite = () => {
+  const handleDeleteComposite = async () => {
     if (!selectedComposite) return;
-    setComposites(composites.filter((c) => c.id !== selectedComposite.id));
-    setShowCompositeDelete(false);
-    setSelectedComposite(null);
-    setError("");
+    const result = await dispatch(deleteComposite(selectedComposite.id));
+    if (deleteComposite.fulfilled.match(result)) {
+      setShowCompositeDelete(false);
+      setSelectedComposite(null);
+      setError("");
+    } else {
+      setError(result.payload || "Failed to delete composite.");
+    }
   };
 
   const renderCompositeRow = (c) => (
     <tr key={c.id}>
-      <td className="fw-semibold text-danger">{c.composite}</td>
+      <td className="fw-semibold text-danger">{c.compositeName}</td>
       <td>{c.compositeCode}</td>
       <td>
         <div className="d-flex gap-2">
@@ -107,7 +161,7 @@ export default function ModuleLists() {
             onClick={() => {
               setSelectedComposite(c);
               setCompositeForm({
-                composite: c.composite,
+                compositeName: c.compositeName,
                 compositeCode: c.compositeCode,
               });
               setShowCompositeEdit(true);
@@ -129,76 +183,59 @@ export default function ModuleLists() {
     </tr>
   );
 
-  // Module list file handlers
+  // ── Module list handlers ──────────────────────────────────────────────
+  // Backend now owns composite validation (via /modulelists/upload), so we
+  // just submit the file and surface whatever error comes back.
   const handleModuleListUpload = async (e) => {
     e.preventDefault();
     if (!moduleListFile) return;
 
-    setUploadingModuleList(true);
     setError("");
+    const result = await dispatch(uploadModuleList(moduleListFile));
 
-    try {
-      const text = await moduleListFile.text();
-      const lines = text.split("\n").filter((line) => line.trim());
-
-      // Find all unique codes in the CSV (first column of data lines, excluding BOF and EOF)
-      const codes = new Set();
-      lines.forEach((line) => {
-        const parts = line.split(";");
-        if (parts.length > 0 && parts[0] && parts[0] !== "BOF" && parts[0] !== "EOF") {
-          codes.add(parts[0].trim()); // Trim whitespace and preserve as string
-        }
-      });
-
-      // Validate that all codes exist in composites (string comparison)
-      const missingCodes = [];
-      codes.forEach((code) => {
-        const exists = composites.some((c) => String(c.compositeCode).trim() === String(code).trim());
-        if (!exists) {
-          missingCodes.push(code);
-        }
-      });
-
-      if (missingCodes.length > 0) {
-        setError(
-          `Cannot upload: The following composite codes do not exist: ${missingCodes.join(", ")}`
-        );
-        setUploadingModuleList(false);
-        return;
-      }
-
-      // Add file to list
-      const newFile = {
-        id: Date.now(),
-        fileName: moduleListFile.name,
-        uploadDate: new Date().toLocaleString(),
-        content: text,
-      };
-      setModuleListFiles([...moduleListFiles, newFile]);
+    if (uploadModuleList.fulfilled.match(result)) {
       setModuleListFile(null);
       document.getElementById("module-list-file-input").value = "";
       setError("");
-    } catch (err) {
-      setError("Failed to process file. Please ensure it's a valid CSV file.");
-    } finally {
-      setUploadingModuleList(false);
+    } else {
+      setError(result.payload || "Failed to upload file.");
     }
   };
 
   const handlePreview = (file) => {
-    setPreviewContent(file.content);
-    setPreviewFileName(file.fileName);
+    dispatch(fetchModuleListById(file.id));
     setShowPreviewModal(true);
   };
 
-  const handleDeleteModuleList = (id) => {
-    setModuleListFiles(moduleListFiles.filter((f) => f.id !== id));
+  const closePreview = () => {
+    setShowPreviewModal(false);
+    setShowFullModule(false);
+    dispatch(clearSelected());
+  };
+
+  const handleDeleteModuleList = async () => {
+    if (!selectedModuleListForDelete) return;
+    const result = await dispatch(deleteModuleList(selectedModuleListForDelete.id));
+    if (deleteModuleList.fulfilled.match(result)) {
+      setShowModuleListDelete(false);
+      setSelectedModuleListForDelete(null);
+    } else {
+      setError(result.payload || "Failed to delete module list.");
+    }
   };
 
   const renderModuleListRow = (f) => (
     <tr key={f.id}>
       <td className="fw-semibold">{f.fileName}</td>
-      <td className="text-muted small">{f.uploadDate}</td>
+      <td className="text-muted small">{new Date(f.uploadDate).toLocaleString()}</td>
+      <td>{f.entryCount}</td>
+      <td>
+        {f.composites?.map((c) => (
+          <span key={c.code} className="badge bg-danger-subtle text-danger-emphasis me-1">
+            {c.code} — {c.name}
+          </span>
+        ))}
+      </td>
       <td>
         <div className="d-flex gap-2">
           <button
@@ -210,7 +247,10 @@ export default function ModuleLists() {
           </button>
           <button
             className="btn btn-sm btn-outline-danger"
-            onClick={() => handleDeleteModuleList(f.id)}
+            onClick={() => {
+              setSelectedModuleListForDelete(f);
+              setShowModuleListDelete(true);
+            }}
             title="Delete"
           >
             <FaTrash />
@@ -295,16 +335,26 @@ export default function ModuleLists() {
                       id="module-list-file-input"
                       type="file"
                       className="form-control"
-                      accept=".csv"
-                      onChange={(e) =>
-                        e.target.files?.[0] && setModuleListFile(e.target.files[0])
-                      }
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+
+                        if (!/\.\d{3}$/.test(file.name)) {
+                          setError("Invalid file extension. Expected a numeric extension like .049 or .050.");
+                          e.target.value = "";
+                          setModuleListFile(null);
+                          return;
+                        }
+
+                        setModuleListFile(file);
+                        setError("");
+                      }}
                       required
                     />
-                    <div className="form-text text-muted small mt-2">
-                      Upload CSV files with composite codes. Codes must be defined in the
-                      composite management section first.
-                    </div>
+                  <div className="form-text text-muted small mt-2">
+                    Upload module list files (any numeric extension, e.g. .049, .050). Composite codes
+                    must be defined in the composite management section first.
+                  </div>
                   </div>
                   <button
                     type="submit"
@@ -392,12 +442,12 @@ export default function ModuleLists() {
                         <input
                           type="text"
                           className="form-control"
-                          placeholder="Enter composite name"
-                          value={compositeForm.composite}
+                          placeholder="e.g., L460 LWB LHD"
+                          value={compositeForm.compositeName}
                           onChange={(e) =>
                             setCompositeForm({
                               ...compositeForm,
-                              composite: e.target.value,
+                              compositeName: e.target.value.toUpperCase(),
                             })
                           }
                         />
@@ -490,11 +540,11 @@ export default function ModuleLists() {
                   <input
                     type="text"
                     className="form-control"
-                    value={compositeForm.composite}
+                    value={compositeForm.compositeName}
                     onChange={(e) =>
                       setCompositeForm({
                         ...compositeForm,
-                        composite: e.target.value,
+                        compositeName: e.target.value.toUpperCase(),
                       })
                     }
                   />
@@ -543,7 +593,7 @@ export default function ModuleLists() {
               </div>
               <div className="modal-body">
                 Are you sure you want to delete composite{" "}
-                <strong>{selectedComposite?.composite}</strong>?
+                <strong>{selectedComposite?.compositeName}</strong>?
               </div>
               <div className="modal-footer">
                 <button
@@ -562,18 +612,55 @@ export default function ModuleLists() {
       )}
 
       {/* ════════════════════════════════════════════════════════════
-          PREVIEW MODAL
+          MODULE LIST DELETE MODAL
+      ═══════════════════════════════════════════════════════════ */}
+      {showModuleListDelete && (
+        <div className="modal d-block" style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content border-0 shadow-lg">
+              <div className="modal-header bg-danger text-white">
+                <h5 className="modal-title fw-bold">Delete Module List</h5>
+                <button
+                  type="button"
+                  className="btn-close btn-close-white"
+                  onClick={() => setShowModuleListDelete(false)}
+                />
+              </div>
+              <div className="modal-body">
+                Are you sure you want to delete{" "}
+                <strong>{selectedModuleListForDelete?.fileName}</strong>?
+              </div>
+              <div className="modal-footer">
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => setShowModuleListDelete(false)}
+                >
+                  Cancel
+                </button>
+                <button className="btn btn-danger" onClick={handleDeleteModuleList}>
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ════════════════════════════════════════════════════════════
+          PREVIEW MODAL (now table-based, backed by parsed entries)
       ═══════════════════════════════════════════════════════════ */}
       {showPreviewModal && (
         <div className="modal d-block" style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
           <div className="modal-dialog modal-dialog-centered modal-xl">
             <div className="modal-content border-0 shadow-lg">
               <div className="modal-header bg-danger text-white">
-                <h5 className="modal-title fw-bold">Preview: {previewFileName}</h5>
+                <h5 className="modal-title fw-bold">
+                  Preview: {selectedModuleList?.fileName || "Loading..."}
+                </h5>
                 <button
                   type="button"
                   className="btn-close btn-close-white"
-                  onClick={() => setShowPreviewModal(false)}
+                  onClick={closePreview}
                 />
               </div>
               <div className="modal-body">
@@ -581,16 +668,57 @@ export default function ModuleLists() {
                   className="table-responsive"
                   style={{ maxHeight: "500px", overflowY: "auto" }}
                 >
-                  <pre className="mb-0" style={{ fontSize: "12px" }}>
-                    {previewContent}
-                  </pre>
+                  {!selectedModuleList ? (
+                    <div className="text-center text-muted py-4">
+                      <span className="spinner-border spinner-border-sm me-2" />
+                      Loading entries...
+                    </div>
+                  ) : (
+                  <table className="table table-hover align-middle table-sm">
+                    <thead className="table-light">
+                      <tr>
+                        {getPreviewColumns(showFullModule).map((col, i) =>
+                          col.clickable ? (
+                            <th
+                              key={i}
+                              role="button"
+                              className="text-primary text-decoration-underline"
+                              style={{ cursor: "pointer", userSelect: "none" }}
+                              onClick={() => setShowFullModule((prev) => !prev)}
+                              title="Click to toggle full module code"
+                            >
+                              {col.showFull ? "Module (Full)" : "Module"}
+                            </th>
+                          ) : (
+                            <th key={i}>{col.label}</th>
+                          )
+                        )}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedModuleList.entries.map((e) => (
+                        <tr key={e.id}>
+                          <td>
+                            {e.composite}
+                            {e.compositeName && (
+                              <span className="text-muted ms-1 small">
+                                ({e.compositeName})
+                              </span>
+                            )}
+                          </td>
+                          <td>{e.rowIndex}</td>
+                          <td>{e.quantity}</td>
+                          <td>{showFullModule ? e.module : truncateModule(e.module)}</td>
+                          <td className="fw-semibold">{e.cpn}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  )}
                 </div>
               </div>
               <div className="modal-footer">
-                <button
-                  className="btn btn-secondary"
-                  onClick={() => setShowPreviewModal(false)}
-                >
+                <button className="btn btn-secondary" onClick={closePreview}>
                   Close
                 </button>
               </div>
