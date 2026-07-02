@@ -7,11 +7,14 @@ import {
   selectEpns, 
   selectEpnsLoading, 
   selectEpnsError, 
-  clearError 
+  clearError,
+  photoUrl
 } from '../../../../redux/slices/epnsSlice'
+import { LayoutGrid, List, Search, Target, Trash2 } from 'lucide-react'
 import EPNForm from './EPNForm'
 import EPNCard from './EPNCard'
 import EPNphotos from './EPNphotos'
+import CavityRenderer from './CavityRenderer'
 import './EPNs.css'
 
 export default function EPNs({ onCoordinateCavities }) {
@@ -23,6 +26,9 @@ export default function EPNs({ onCoordinateCavities }) {
   const [error, setError] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
   const [tab, setTab] = useState('epns')
+  const [viewMode, setViewMode] = useState('grid')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [hoveredEpnId, setHoveredEpnId] = useState(null)
 
   useEffect(() => {
     dispatch(fetchEpns())
@@ -123,21 +129,198 @@ export default function EPNs({ onCoordinateCavities }) {
             onImport={handleImport}
           />
 
-          <div className="epns-grid">
-            {epns.length === 0 && !loading && (
-              <div className="epns-empty">No EPNs found</div>
-            )}
-            
-            {epns.map(epn => (
-              console.log('EPN clicked:', epn),
-              <EPNCard
-                key={epn.id}
-                epn={epn}
-                onCoordinate={onCoordinateCavities}
-                onDelete={handleDelete}
-              />
-            ))}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+            <div style={{ display: "flex", gap: "16px", alignItems: "center" }}>
+              <div style={{ display: "flex", background: "#f0f0f0", borderRadius: "8px", padding: "4px" }}>
+                <button
+                  onClick={() => setViewMode("grid")}
+                  style={{
+                    background: viewMode === "grid" ? "#fff" : "transparent",
+                    color: viewMode === "grid" ? "#111" : "#666",
+                    border: "none",
+                    borderRadius: "6px",
+                    padding: "6px 10px",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    boxShadow: viewMode === "grid" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
+                    transition: "all 0.2s"
+                  }}
+                  title="Grid View"
+                >
+                  <LayoutGrid size={18} />
+                </button>
+                <button
+                  onClick={() => setViewMode("table")}
+                  style={{
+                    background: viewMode === "table" ? "#fff" : "transparent",
+                    color: viewMode === "table" ? "#111" : "#666",
+                    border: "none",
+                    borderRadius: "6px",
+                    padding: "6px 10px",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    boxShadow: viewMode === "table" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
+                    transition: "all 0.2s"
+                  }}
+                  title="Table View"
+                >
+                  <List size={18} />
+                </button>
+              </div>
+
+              {viewMode === "table" && (
+                <div style={{ position: "relative" }}>
+                  <Search size={16} style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)", color: "#888" }} />
+                  <input
+                    type="text"
+                    placeholder="Search EPNs..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    style={{
+                      padding: "8px 10px 8px 32px",
+                      borderRadius: "6px",
+                      border: "1px solid #ddd",
+                      outline: "none",
+                      width: "250px"
+                    }}
+                  />
+                </div>
+              )}
+            </div>
           </div>
+
+          {viewMode === 'grid' ? (
+            <div className="epns-grid">
+              {epns.length === 0 && !loading && (
+                <div className="epns-empty">No EPNs found</div>
+              )}
+              
+              {epns.map(epn => (
+                console.log('EPN clicked:', epn),
+                <EPNCard
+                  key={epn.id}
+                  epn={epn}
+                  onCoordinate={onCoordinateCavities}
+                  onDelete={handleDelete}
+                />
+              ))}
+            </div>
+          ) : (
+            <div style={{ background: "#fff", borderRadius: "10px", border: "1px solid #ddd", overflow: "visible" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+                <thead>
+                  <tr style={{ background: "#f9f9f9", borderBottom: "1px solid #ddd" }}>
+                    <th style={{ padding: "12px 16px", fontWeight: "600", color: "#444", borderTopLeftRadius: "10px" }}>Image</th>
+                    <th style={{ padding: "12px 16px", fontWeight: "600", color: "#444" }}>EPN</th>
+                    <th style={{ padding: "12px 16px", fontWeight: "600", color: "#444" }}>Node Name</th>
+                    <th style={{ padding: "12px 16px", fontWeight: "600", color: "#444" }}>Cavity Count</th>
+                    <th style={{ padding: "12px 16px", fontWeight: "600", color: "#444", textAlign: "right", borderTopRightRadius: "10px" }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {epns
+                    .filter(epn => {
+                      if (!searchQuery) return true;
+                      return epn.epn.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                             (epn.nodeName && epn.nodeName.toLowerCase().includes(searchQuery.toLowerCase()));
+                    })
+                    .map((epn) => (
+                    <tr key={epn.id} style={{ borderBottom: "1px solid #eee" }}>
+                      <td 
+                        style={{ padding: "12px 16px", width: "100px", position: "relative" }}
+                        onMouseEnter={() => setHoveredEpnId(epn.id)}
+                        onMouseLeave={() => setHoveredEpnId(null)}
+                      >
+                        {epn.photo ? (
+                          <img
+                            src={photoUrl(epn.photo)}
+                            alt={epn.epn}
+                            style={{ width: "60px", height: "auto", borderRadius: "4px", background: "#f0f0f0", cursor: "pointer" }}
+                            onError={(e) => { e.target.style.display = 'none' }}
+                          />
+                        ) : (
+                          <div style={{ width: "60px", height: "40px", background: "#eee", borderRadius: "4px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "10px", color: "#aaa" }}>No img</div>
+                        )}
+                        
+                        {hoveredEpnId === epn.id && (
+                          <div style={{
+                            position: "absolute",
+                            top: "50%",
+                            left: "100%",
+                            transform: "translateY(-50%)",
+                            marginLeft: "15px",
+                            width: "300px",
+                            background: "#fff",
+                            border: "1px solid #ddd",
+                            borderRadius: "10px",
+                            boxShadow: "0 10px 30px rgba(0,0,0,0.15)",
+                            zIndex: 1000,
+                            overflow: "hidden"
+                          }}>
+                            <div className="epns-card-image" style={{ width: "100%", margin: 0, position: "relative" }}>
+                              {epn.photo ? (
+                                <img
+                                  src={photoUrl(epn.photo)}
+                                  alt={epn.epn}
+                                  style={{ width: "100%", height: "auto", display: "block" }}
+                                />
+                              ) : (
+                                <div className="epn-image-placeholder">
+                                  <span className="placeholder-text">No image</span>
+                                </div>
+                              )}
+                              <CavityRenderer epn={epn} />
+                            </div>
+                            <div style={{ padding: "10px 14px", fontSize: "13px", fontWeight: "700", color: "#222", background: "#fafafa", borderTop: "1px solid #eee", textAlign: "center", display: "flex", justifyContent: "space-between" }}>
+                              <span>{epn.epn}</span>
+                              <span style={{ color: "#777", fontWeight: "500" }}>{epn.cavityCount} cavities</span>
+                            </div>
+                          </div>
+                        )}
+                      </td>
+                      <td style={{ padding: "12px 16px", fontWeight: "700", color: "#222" }}>
+                        {epn.epn}
+                      </td>
+                      <td style={{ padding: "12px 16px", color: "#666" }}>
+                        {epn.nodeName || '-'}
+                      </td>
+                      <td style={{ padding: "12px 16px", color: "#666" }}>
+                        {epn.cavityCount}
+                      </td>
+                      <td style={{ padding: "12px 16px", textAlign: "right" }}>
+                        <button
+                          onClick={() => onCoordinateCavities?.(epn, 'epn')}
+                          title="Coordinate cavities"
+                          style={{ background: "none", border: "none", color: "#444", cursor: "pointer", padding: "6px", position: "relative" }}
+                        >
+                          <Target size={16} />
+                          {epn.needsCoordination && (
+                            <span style={{ position: "absolute", top: "2px", right: "2px", width: "6px", height: "6px", background: "#d9534f", borderRadius: "50%" }} />
+                          )}
+                        </button>
+                        <button
+                          onClick={() => handleDelete(epn)}
+                          title="Delete EPN"
+                          style={{ background: "none", border: "none", color: "#d9534f", cursor: "pointer", padding: "6px", marginLeft: "4px" }}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                  {epns.filter(epn => !searchQuery || epn.epn.toLowerCase().includes(searchQuery.toLowerCase()) || (epn.nodeName && epn.nodeName.toLowerCase().includes(searchQuery.toLowerCase()))).length === 0 && (
+                    <tr>
+                      <td colSpan="5" style={{ padding: "24px", textAlign: "center", color: "#888" }}>
+                        No EPNs found.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
         </>
       )}
 
