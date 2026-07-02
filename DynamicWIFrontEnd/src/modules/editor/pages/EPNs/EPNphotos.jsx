@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Upload, Trash2, X, AlertTriangle, CheckCircle, ImagePlus, XCircle } from "lucide-react";
+import { Upload, Trash2, X, AlertTriangle, CheckCircle, ImagePlus, XCircle, LayoutGrid, List, Search } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   fetchPhotos,
@@ -243,6 +243,8 @@ export default function EPNphotos() {
   const [uploading,    setUploading]    = useState(false);
   const [progress,     setProgress]     = useState({ done: 0, total: 0 });
   const [fileStatuses, setFileStatuses] = useState({});       // { [filename]: status }
+  const [viewMode, setViewMode]         = useState("grid");
+  const [searchQuery, setSearchQuery]   = useState("");
 
   useEffect(() => { dispatch(fetchPhotos()); }, [dispatch]);
 
@@ -343,6 +345,12 @@ export default function EPNphotos() {
       .replace(/\.[^.]+$/, "");
   };
 
+  const filteredPhotos = photos.filter(photo => {
+    if (!searchQuery) return true;
+    const name = getDisplayName(photo.filePath).toLowerCase();
+    return name.includes(searchQuery.toLowerCase());
+  });
+
   return (
     <div>
       {deleteId && (
@@ -365,27 +373,90 @@ export default function EPNphotos() {
 
       <main>
         <div className="component-page">
-          <div className="component-upload-box">
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              accept="image/*"
-              onChange={handleFileChange}
-              style={{ display: "none" }}
-            />
-            <button
-              className="component-upload-btn"
-              onClick={() => fileInputRef.current.click()}
-              disabled={loading || !!pendingFiles}
-            >
-              <Upload size={16} />
-              {loading ? "Uploading..." : "Upload Image(s)"}
-            </button>
+          <div className="component-upload-box" style={{ justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ display: "flex", gap: "16px", alignItems: "center" }}>
+              <div style={{ display: "flex", background: "#f0f0f0", borderRadius: "8px", padding: "4px" }}>
+                <button
+                  onClick={() => setViewMode("grid")}
+                  style={{
+                    background: viewMode === "grid" ? "#fff" : "transparent",
+                    color: viewMode === "grid" ? "#111" : "#666",
+                    border: "none",
+                    borderRadius: "6px",
+                    padding: "6px 10px",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    boxShadow: viewMode === "grid" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
+                    transition: "all 0.2s"
+                  }}
+                  title="Grid View"
+                >
+                  <LayoutGrid size={18} />
+                </button>
+                <button
+                  onClick={() => setViewMode("table")}
+                  style={{
+                    background: viewMode === "table" ? "#fff" : "transparent",
+                    color: viewMode === "table" ? "#111" : "#666",
+                    border: "none",
+                    borderRadius: "6px",
+                    padding: "6px 10px",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    boxShadow: viewMode === "table" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
+                    transition: "all 0.2s"
+                  }}
+                  title="Table View"
+                >
+                  <List size={18} />
+                </button>
+              </div>
+
+              {viewMode === "table" && (
+                <div style={{ position: "relative" }}>
+                  <Search size={16} style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)", color: "#888" }} />
+                  <input
+                    type="text"
+                    placeholder="Search photos..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    style={{
+                      padding: "8px 10px 8px 32px",
+                      borderRadius: "6px",
+                      border: "1px solid #ddd",
+                      outline: "none",
+                      width: "200px"
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+
+            <div style={{ display: "flex" }}>
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept="image/*"
+                onChange={handleFileChange}
+                style={{ display: "none" }}
+              />
+              <button
+                className="component-upload-btn"
+                onClick={() => fileInputRef.current.click()}
+                disabled={loading || !!pendingFiles}
+              >
+                <Upload size={16} />
+                {loading ? "Uploading..." : "Upload Image(s)"}
+              </button>
+            </div>
           </div>
 
-          <div className="component-grid">
-            {photos.map((photo) => (
+          {viewMode === "grid" ? (
+            <div className="component-grid">
+              {filteredPhotos.map((photo) => (
               <div key={photo.id} className="component-card">
                 <img
                   src={photoUrl(photo.filePath)}
@@ -407,6 +478,56 @@ export default function EPNphotos() {
               </div>
             ))}
           </div>
+          ) : (
+            <div style={{ background: "#fff", borderRadius: "10px", border: "1px solid #ddd", overflow: "hidden" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+                <thead>
+                  <tr style={{ background: "#f9f9f9", borderBottom: "1px solid #ddd" }}>
+                    <th style={{ padding: "12px 16px", fontWeight: "600", color: "#444" }}>Preview</th>
+                    <th style={{ padding: "12px 16px", fontWeight: "600", color: "#444" }}>File Name</th>
+                    <th style={{ padding: "12px 16px", fontWeight: "600", color: "#444" }}>Dimensions</th>
+                    <th style={{ padding: "12px 16px", fontWeight: "600", color: "#444", textAlign: "right" }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredPhotos.map((photo) => (
+                    <tr key={photo.id} style={{ borderBottom: "1px solid #eee" }}>
+                      <td style={{ padding: "12px 16px", width: "100px" }}>
+                        <img
+                          src={photoUrl(photo.filePath)}
+                          alt={getDisplayName(photo.filePath)}
+                          style={{ width: "60px", height: "auto", borderRadius: "4px", background: "#f0f0f0" }}
+                        />
+                      </td>
+                      <td style={{ padding: "12px 16px", fontWeight: "500", color: "#222" }}>
+                        {getDisplayName(photo.filePath)}
+                      </td>
+                      <td style={{ padding: "12px 16px", color: "#666", fontSize: "13px" }}>
+                        {photo.photoWidth} × {photo.photoHeight}
+                      </td>
+                      <td style={{ padding: "12px 16px", textAlign: "right" }}>
+                        <button
+                          onClick={() => setDeleteId(photo.id)}
+                          title="Delete photo"
+                          aria-label="Delete photo"
+                          style={{ background: "none", border: "none", color: "#d9534f", cursor: "pointer", padding: "6px" }}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                  {filteredPhotos.length === 0 && (
+                    <tr>
+                      <td colSpan="4" style={{ padding: "24px", textAlign: "center", color: "#888" }}>
+                        No photos found matching "{searchQuery}"
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </main>
     </div>
