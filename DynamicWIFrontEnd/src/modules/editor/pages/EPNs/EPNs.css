@@ -753,3 +753,292 @@
   text-align: right;
   background: #fff;
 }
+
+/* ── Upload Preview Modal (upv-*) ───────────────────────────────────────── */
+
+/* ── Modal shell ── */
+.upv-modal {
+  background: #fff;
+  border-radius: 14px;
+  width: min(94vw, 560px);
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.22);
+  overflow: hidden;
+}
+
+/* ── Header ── */
+.upv-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  height: 54px;
+  background: #b91c1c;
+  flex-shrink: 0;
+  color: #fff;
+}
+
+.upv-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.upv-close {
+  position: static !important;
+  color: rgba(255,255,255,0.75) !important;
+  padding: 6px;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+
+.upv-close:hover:not(:disabled) {
+  background: rgba(255,255,255,0.15);
+  color: #fff !important;
+}
+
+/* ── Summary badges ── */
+.upv-summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 12px 20px 0;
+  flex-shrink: 0;
+}
+
+.upv-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 20px;
+  letter-spacing: 0.02em;
+}
+
+.upv-badge--new    { background: #dcfce7; color: #15803d; }
+.upv-badge--dup    { background: #fef9c3; color: #92400e; }
+.upv-badge--total  { background: #f1f5f9; color: #475569; }
+.upv-badge--batch  { background: #fee2e2; color: #b91c1c; }
+
+/* ── Overwrite checkbox row ── */
+.upv-overwrite-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 12px 20px 0;
+  padding: 10px 14px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  cursor: pointer;
+  flex-shrink: 0;
+  font-size: 13px;
+  color: #333;
+  user-select: none;
+}
+
+.upv-overwrite-check {
+  margin-top: 2px;
+  accent-color: #b91c1c;
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.upv-overwrite-row strong {
+  display: block;
+  font-size: 13px;
+  color: #111;
+  margin-bottom: 2px;
+}
+
+.upv-overwrite-hint {
+  display: block;
+  font-size: 11px;
+  color: #888;
+}
+
+/* ── Progress bar ── */
+.upv-progress-wrap {
+  padding: 10px 20px 0;
+  flex-shrink: 0;
+}
+
+.upv-progress-track {
+  height: 6px;
+  background: #f1f5f9;
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.upv-progress-fill {
+  height: 100%;
+  background: #b91c1c;
+  border-radius: 99px;
+  transition: width 0.3s ease;
+}
+
+.upv-progress-label {
+  display: block;
+  font-size: 11px;
+  color: #888;
+  margin-top: 5px;
+  text-align: right;
+}
+
+/* ── File list ── */
+.upv-list {
+  list-style: none;
+  margin: 12px 20px;
+  padding: 0;
+  overflow-y: auto;
+  flex: 1;
+  border: 1px solid #f0f0f0;
+  border-radius: 8px;
+  min-height: 0;
+}
+
+.upv-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid #f5f5f5;
+  font-size: 12.5px;
+  transition: background 0.2s;
+}
+
+.upv-row:last-child { border-bottom: none; }
+
+/* row state colours */
+.upv-row--dup       { background: #fffbeb; }
+.upv-row--uploading { background: #fef2f2; animation: upv-pulse 1s ease-in-out infinite; }
+.upv-row--done      { background: #f0fdf4; }
+.upv-row--failed    { background: #fff1f2; }
+.upv-row--skipped   { background: #f8fafc; opacity: 0.55; }
+
+@keyframes upv-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.6; }
+}
+
+.upv-row-icon {
+  flex-shrink: 0;
+  width: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.upv-row-name {
+  flex: 1;
+  color: #222;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.upv-row-size {
+  color: #bbb;
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+.upv-row-tag {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #92400e;
+  background: #fef3c7;
+  padding: 2px 7px;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.upv-row-tag--skip {
+  color: #64748b;
+  background: #f1f5f9;
+}
+
+.upv-row-tag--fail {
+  color: #b91c1c;
+  background: #fee2e2;
+}
+
+.upv-row-skip-icon {
+  font-size: 12px;
+  color: #bbb;
+}
+
+/* row spinner (uploading state) */
+.upv-row-spinner {
+  display: inline-block;
+  width: 13px;
+  height: 13px;
+  border: 2px solid #fca5a5;
+  border-top-color: #b91c1c;
+  border-radius: 50%;
+  animation: upv-spin 0.65s linear infinite;
+}
+
+/* ── Actions footer ── */
+.upv-actions {
+  display: flex;
+  gap: 10px;
+  padding: 14px 20px;
+  border-top: 1px solid #f0f0f0;
+  flex-shrink: 0;
+}
+
+/* Proceed / Close button */
+.upv-btn-proceed {
+  flex: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 18px;
+  border: none;
+  border-radius: 8px;
+  background: #b91c1c;
+  color: #fff;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.18s;
+}
+
+.upv-btn-proceed:hover:not(:disabled) { background: #991b1b; }
+
+.upv-btn-proceed:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Main spinner (inside proceed button) */
+.upv-spinner {
+  display: inline-block;
+  width: 13px;
+  height: 13px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: upv-spin 0.65s linear infinite;
+}
+
+@keyframes upv-spin {
+  to { transform: rotate(360deg); }
+}
+
+
