@@ -37,73 +37,76 @@ namespace DynamicWiApi.Controllers
         /// Returns node name, epn, and per-cavity colors resolved from WireData (C1/C2).
         /// </summary>
         [HttpGet("node/{nodeName}")]
-        // public async Task<IActionResult> GetByNode(string nodeName)
-        // {
-        //     var wires = await _db.WireDatas
-        //         .Where(w => w.Node.ToLower() == nodeName.ToLower())
-        //         .ToListAsync();
+        public async Task<IActionResult> GetByNode(string nodeName)
+{
+    if (string.IsNullOrWhiteSpace(nodeName))
+        return BadRequest(new { message = "Node name is required." });
 
-        //     if (!wires.Any())
-        //         return NotFound(new { message = $"No wires found for node '{nodeName}'." });
+    var wires = await _db.WireDatas
+        .Where(w => w.Node != null && w.Node.ToLower() == nodeName.ToLower())
+        .OrderBy(w => w.Cavity)
+        .ThenBy(w => w.WireNumber)
+        .ToListAsync();
 
-        //     // Group by EPN
-        //     var epnName = wires.First().Epn;
-        //     var epn = await _db.Epns.FirstOrDefaultAsync(e => e.EpnCode == epnName);
+    if (!wires.Any())
+        return NotFound(new { message = $"No wires found for node '{nodeName}'." });
 
-        //     // Build cavity color map from wire data
-        //     var cavityColors = new Dictionary<string, List<string>>();
-        //     foreach (var wire in wires)
-        //     {
-        //         var cavKey = wire.Cavity.Trim();
-        //         if (!cavityColors.ContainsKey(cavKey))
-        //             cavityColors[cavKey] = new List<string>();
-        //         // Encode C1 and C2 as color strings (front-end maps abbreviation → hex)
-        //         if (!string.IsNullOrEmpty(wire.C1)) cavityColors[cavKey].Add(wire.C1);
-        //         if (!string.IsNullOrEmpty(wire.C2)) cavityColors[cavKey].Add(wire.C2);
-        //     }
+    var epnCode = wires.First().Epn;
 
-        //     // Parse EPN coordinates JSON
-        //     object? coordinatesObj = null;
-        //     if (epn != null && !string.IsNullOrEmpty(epn.CoordinatesJson))
-        //     {
-        //         try
-        //         {
-        //             coordinatesObj = System.Text.Json.JsonSerializer.Deserialize<object>(epn.CoordinatesJson);
-        //         }
-        //         catch { }
-        //     }
+    var epn = await _db.Epns
+        .AsNoTracking()
+        .Include(e => e.Cavities)
+        .FirstOrDefaultAsync(e => e.EpnCode == epnCode);
 
-        //     var result = new
-        //     {
-        //         nodeName,
-        //         epn = epnName,
-        //         photo = epn?.Photo,
-        //         epnId = epn?.Id,
-        //         cavityCount = epn?.CavityCount ?? wires.First().TotalCav,
-        //         needsCoordination = epn?.NeedsCoordination ?? true,
-        //         coordinates = coordinatesObj,
-        //         wires = wires.Select(w => new
-        //         {
-        //             w.Id,
-        //             w.WireNumber,
-        //             w.Csa,
-        //             w.Length,
-        //             w.C1,
-        //             w.C2,
-        //             w.Loc,
-        //             w.Node,
-        //             w.Epn,
-        //             w.TotalCav,
-        //             w.Cavity,
-        //             w.Module,
-        //             w.Station
-        //         }),
-        //         cavityColors
-        //     };
+    // Build structured coordinates from EpnCavity rows (same shape as EpnsController)
+    var coordinates = epn?.Cavities is { Count: > 0 }
+        ? epn.Cavities
+            .OrderBy(c => c.CavityNumber)
+            .ToDictionary(
+                c => c.CavityNumber.ToString(),
+                c => new { c.X, c.Y, c.Size, c.Shape }
+            )
+        : null;
 
-        //     return Ok(result);
-        // }
+    var cavityColors = wires
+        .GroupBy(w => w.Cavity)
+        .ToDictionary(
+            g => g.Key,
+            g => g
+                .SelectMany(w => new[] { w.C1, w.C2 })
+                .Where(c => !string.IsNullOrWhiteSpace(c))
+                .Distinct()
+                .ToList()
+        );
 
+    return Ok(new
+    {
+        nodeName,
+        epn = epnCode,
+        epnId = epn?.Id,
+        photo = epn?.Photo,
+        cavityCount = epn?.CavityCount ?? wires.First().TotalCav,
+        needsCoordination = epn?.NeedsCoordination ?? true,
+        coordinates,
+        cavityColors,
+        wires = wires.Select(w => new
+        {
+            w.Id,
+            w.WireNumber,
+            w.Csa,
+            w.Length,
+            w.C1,
+            w.C2,
+            w.Loc,
+            w.Node,
+            w.Epn,
+            w.TotalCav,
+            w.Cavity,
+            w.Module,
+            w.Station
+        })
+    });
+}
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] WireData model)
         {
@@ -150,6 +153,15 @@ namespace DynamicWiApi.Controllers
             _db.WireDatas.Remove(existing);
             await _db.SaveChangesAsync();
             return Ok(new { message = "Deleted successfully" });
+        }
+
+        [HttpDelete]
+        public async Task<IActionResult> DeleteAll()
+        {
+            _db.WireDatas.RemoveRange(_db.WireDatas);
+            await _db.SaveChangesAsync();
+
+            return Ok(new { message = "All wire data deleted successfully." });
         }
 
         [HttpPost("upload")]

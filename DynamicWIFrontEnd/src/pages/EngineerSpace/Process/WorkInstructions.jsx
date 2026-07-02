@@ -13,16 +13,6 @@ import AppNavbar from "../../../components/Navbar";
 import AccordionTable from "../../../components/AccordionTable";
 import { api } from "../../../redux/api";
 
-// ─── Module List ────────────────────────────────────────────────────────────
-const emptyModule = { ljsOrd: "", module: "", composite: "" };
-
-const MODULE_COLUMNS = [
-  { label: "LJS_ord" },
-  { label: "Module" },
-  { label: "Composite" },
-  { label: "Actions", style: { width: 100 } },
-];
-
 // ─── Wire Data ───────────────────────────────────────────────────────────────
 const WIRE_COLUMNS = [
   { label: "Wire Nb" },
@@ -56,17 +46,6 @@ const emptyWire = {
 };
 
 export default function WorkInstructions() {
-  // ── Module state ───────────────────────────────────────────────
-  const [modules, setModules] = useState([]);
-  const [modulesLoading, setModulesLoading] = useState(false);
-  const [moduleFile, setModuleFile] = useState(null);
-  const [uploadingModules, setUploadingModules] = useState(false);
-  const [moduleForm, setModuleForm] = useState(emptyModule);
-  const [selectedModule, setSelectedModule] = useState(null);
-  const [showModuleAdd, setShowModuleAdd] = useState(false);
-  const [showModuleEdit, setShowModuleEdit] = useState(false);
-  const [showModuleDelete, setShowModuleDelete] = useState(false);
-
   // ── Wire state ─────────────────────────────────────────────────
   const [wires, setWires] = useState([]);
   const [wiresLoading, setWiresLoading] = useState(false);
@@ -89,19 +68,6 @@ export default function WorkInstructions() {
   // ════════════════════════════════════════════════════════════════
   //  Fetch helpers
   // ════════════════════════════════════════════════════════════════
-  const fetchModules = async () => {
-    setModulesLoading(true);
-    try {
-      const res = await api.get("/workinstructions");
-      setModules(res.data);
-    } catch (err) {
-      console.error(err);
-      setError("Failed to fetch module list.");
-    } finally {
-      setModulesLoading(false);
-    }
-  };
-
   const fetchWires = async () => {
     setWiresLoading(true);
     try {
@@ -116,105 +82,8 @@ export default function WorkInstructions() {
   };
 
   useEffect(() => {
-    fetchModules();
     fetchWires();
   }, []);
-
-  // ════════════════════════════════════════════════════════════════
-  //  Module CRUD
-  // ════════════════════════════════════════════════════════════════
-  const handleModuleInput = (e) =>
-    setModuleForm((p) => ({ ...p, [e.target.name]: e.target.value }));
-
-  const handleModuleUpload = async (e) => {
-    e.preventDefault();
-    if (!moduleFile) return;
-    setUploadingModules(true);
-    setError("");
-    const fd = new FormData();
-    fd.append("file", moduleFile);
-    try {
-      const res = await api.post("/workinstructions/upload", fd, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      setModules(res.data);
-      setModuleFile(null);
-      document.getElementById("module-file-input").value = "";
-    } catch (err) {
-      setError(err.response?.data || "Failed to upload Module Excel.");
-    } finally {
-      setUploadingModules(false);
-    }
-  };
-
-  const handleAddModule = async () => {
-    try {
-      await api.post("/workinstructions", {
-        ljsOrd: parseInt(moduleForm.ljsOrd, 10) || 0,
-        module: moduleForm.module,
-        composite: moduleForm.composite,
-      });
-      fetchModules();
-      setShowModuleAdd(false);
-    } catch {
-      setError("Failed to create module.");
-    }
-  };
-
-  const handleEditModule = async () => {
-    if (!selectedModule) return;
-    try {
-      await api.put(`/workinstructions/${selectedModule.id}`, {
-        id: selectedModule.id,
-        ljsOrd: parseInt(moduleForm.ljsOrd, 10) || 0,
-        module: moduleForm.module,
-        composite: moduleForm.composite,
-      });
-      fetchModules();
-      setShowModuleEdit(false);
-    } catch {
-      setError("Failed to update module.");
-    }
-  };
-
-  const handleDeleteModule = async () => {
-    if (!selectedModule) return;
-    try {
-      await api.delete(`/workinstructions/${selectedModule.id}`);
-      fetchModules();
-      setShowModuleDelete(false);
-    } catch {
-      setError("Failed to delete module.");
-    }
-  };
-
-  const renderModuleRow = (m) => (
-    <tr key={m.id}>
-      <td>{m.ljsOrd}</td>
-      <td className="fw-semibold text-danger">{m.module}</td>
-      <td>{m.composite}</td>
-      <td>
-        <div className="d-flex gap-2">
-          <button
-            className="btn btn-sm btn-outline-warning"
-            onClick={() => {
-              setSelectedModule(m);
-              setModuleForm({ ljsOrd: m.ljsOrd, module: m.module, composite: m.composite });
-              setShowModuleEdit(true);
-            }}
-          >
-            <FaEdit />
-          </button>
-          <button
-            className="btn btn-sm btn-outline-danger"
-            onClick={() => { setSelectedModule(m); setShowModuleDelete(true); }}
-          >
-            <FaTrash />
-          </button>
-        </div>
-      </td>
-    </tr>
-  );
 
   // ════════════════════════════════════════════════════════════════
   //  Wire CRUD
@@ -283,6 +152,16 @@ export default function WorkInstructions() {
       setShowWireDelete(false);
     } catch {
       setError("Failed to delete wire.");
+    }
+  };
+
+  const handleDeleteAllWires = async () => {
+  try {
+      await api.delete("/wiredata");
+      fetchWires();
+      setShowWireDelete(false);
+    } catch {
+      setError("Failed to delete all wires.");
     }
   };
 
@@ -362,7 +241,7 @@ export default function WorkInstructions() {
           <div>
             <h2 className="mb-0 fw-bold text-dark">Work Instructions</h2>
             <p className="text-muted mb-0 small">
-              Manage module lists, wire data, upload composite structures, and control instruction configurations.
+              Manage wire data, run node lookups, and control instruction configurations.
             </p>
           </div>
         </div>
@@ -375,79 +254,7 @@ export default function WorkInstructions() {
         )}
 
         {/* ══════════════════════════════════════════════════════════
-            SECTION 1 — Module List
-        ══════════════════════════════════════════════════════════ */}
-        <div className="row g-4 mb-5">
-          {/* Upload card */}
-          <div className="col-12 col-lg-4">
-            <div className="card border-0 shadow-sm rounded-3 h-100">
-              <div className="card-header bg-danger text-white py-3">
-                <h5 className="mb-0 fw-bold d-flex align-items-center gap-2">
-                  <FaUpload /> Upload Module Excel
-                </h5>
-              </div>
-              <div className="card-body py-4">
-                <form onSubmit={handleModuleUpload}>
-                  <div className="mb-3">
-                    <label className="form-label fw-semibold text-muted small">SELECT EXCEL FILE</label>
-                    <input
-                      id="module-file-input"
-                      type="file"
-                      className="form-control"
-                      accept=".xlsx,.xls"
-                      onChange={(e) => e.target.files?.[0] && setModuleFile(e.target.files[0])}
-                      required
-                    />
-                    <div className="form-text text-muted small mt-2">
-                      Requires <code>LJS_ord</code>, <code>module</code>, <code>composite</code> columns.
-                      Uploading overwrites existing entries.
-                    </div>
-                  </div>
-                  <button
-                    type="submit"
-                    className="btn btn-danger w-100 py-2 d-flex align-items-center justify-content-center gap-2"
-                    disabled={!moduleFile || uploadingModules}
-                  >
-                    {uploadingModules
-                      ? <span className="spinner-border spinner-border-sm" role="status" />
-                      : <FaUpload />}
-                    {uploadingModules ? "Processing..." : "Upload & Overwrite"}
-                  </button>
-                </form>
-              </div>
-            </div>
-          </div>
-
-          {/* Module accordion */}
-          <div className="col-12 col-lg-8">
-            <div className="accordion shadow-sm rounded-3" id="modulesAccordion">
-              <AccordionTable
-                id="modulesListTable"
-                icon={<FaFileAlt className="text-white" />}
-                title="Modules List"
-                defaultOpen
-                toolbar={
-                  <button className="btn btn-sm btn-danger d-flex align-items-center gap-1" onClick={() => { setModuleForm(emptyModule); setShowModuleAdd(true); }}>
-                    <FaPlus /> Add Module
-                  </button>
-                }
-                totalCount={modules.length}
-                totalLabel="modules"
-                columns={MODULE_COLUMNS}
-                data={modules}
-                loading={modulesLoading}
-                renderRow={renderModuleRow}
-                emptyText="No modules imported yet. Use the upload panel to import Excel data."
-                searchable
-                searchPlaceholder="Search module or composite..."
-                searchKeys={["module", "composite"]}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* ══════════════════════════════════════════════════════════
-            SECTION 2 — Wire Data
+            SECTION — Wire Data
         ══════════════════════════════════════════════════════════ */}
         <div className="row g-4">
           {/* Upload + Node lookup card */}
@@ -491,7 +298,12 @@ export default function WorkInstructions() {
                 </form>
               </div>
             </div>
-
+                                                        <button
+                                  className="btn btn-sm btn-danger"
+                                  onClick={handleDeleteAllWires}
+                                >
+                                  Delete All Wires
+                                </button>
             {/* Node lookup card */}
             <div className="card border-0 shadow-sm rounded-3">
               <div className="card-header py-3" style={{ backgroundColor: "#16213e" }}>
@@ -619,41 +431,6 @@ export default function WorkInstructions() {
       </main>
 
       {/* ════════════════════════════════════════════════════════════
-          MODULE MODALS
-      ═══════════════════════════════════════════════════════════ */}
-      {showModuleAdd && (
-        <ModalWrapper title="Add Module" headerClass="bg-danger text-white" onClose={() => setShowModuleAdd(false)}>
-          <ModuleForm form={moduleForm} onChange={handleModuleInput} />
-          <div className="modal-footer">
-            <button className="btn btn-secondary" onClick={() => setShowModuleAdd(false)}>Cancel</button>
-            <button className="btn btn-danger" onClick={handleAddModule}>Create</button>
-          </div>
-        </ModalWrapper>
-      )}
-
-      {showModuleEdit && (
-        <ModalWrapper title="Edit Module" headerClass="bg-warning text-dark" onClose={() => setShowModuleEdit(false)}>
-          <ModuleForm form={moduleForm} onChange={handleModuleInput} />
-          <div className="modal-footer">
-            <button className="btn btn-secondary" onClick={() => setShowModuleEdit(false)}>Cancel</button>
-            <button className="btn btn-warning" onClick={handleEditModule}>Save Changes</button>
-          </div>
-        </ModalWrapper>
-      )}
-
-      {showModuleDelete && (
-        <ModalWrapper title="Delete Module" headerClass="bg-danger text-white" onClose={() => setShowModuleDelete(false)}>
-          <div className="modal-body">
-            <p>Are you sure you want to delete module <strong>{selectedModule?.module}</strong>?</p>
-          </div>
-          <div className="modal-footer">
-            <button className="btn btn-secondary" onClick={() => setShowModuleDelete(false)}>Cancel</button>
-            <button className="btn btn-danger" onClick={handleDeleteModule}>Delete</button>
-          </div>
-        </ModalWrapper>
-      )}
-
-      {/* ════════════════════════════════════════════════════════════
           WIRE MODALS
       ═══════════════════════════════════════════════════════════ */}
       {showWireAdd && (
@@ -705,28 +482,6 @@ function ModalWrapper({ title, headerClass = "", headerStyle = {}, onClose, chil
           </div>
           {children}
         </div>
-      </div>
-    </div>
-  );
-}
-
-// ──────────────────────────────────────────────────────────────────────────────
-//  Module form fields
-// ──────────────────────────────────────────────────────────────────────────────
-function ModuleForm({ form, onChange }) {
-  return (
-    <div className="modal-body">
-      <div className="mb-3">
-        <label className="form-label">LJS_ord</label>
-        <input type="number" className="form-control" name="ljsOrd" value={form.ljsOrd} onChange={onChange} />
-      </div>
-      <div className="mb-3">
-        <label className="form-label">Module</label>
-        <input type="text" className="form-control" name="module" value={form.module} onChange={onChange} />
-      </div>
-      <div className="mb-3">
-        <label className="form-label">Composite</label>
-        <input type="text" className="form-control" name="composite" value={form.composite} onChange={onChange} />
       </div>
     </div>
   );
