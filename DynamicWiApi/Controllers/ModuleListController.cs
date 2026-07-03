@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using DynamicWiApi.Data;
 using DynamicWiApi.Models;
+using Microsoft.AspNetCore.Authorization;
 
 namespace DynamicWiApi.Controllers
 {
@@ -103,6 +104,7 @@ namespace DynamicWiApi.Controllers
             return Ok(new { message = "Deleted successfully" });
         }
 
+        [Authorize]
         [HttpPost("upload")]
         public async Task<IActionResult> Upload(IFormFile file)
         {
@@ -163,16 +165,16 @@ namespace DynamicWiApi.Controllers
                 }
 
                 var userIdClaim = User.FindFirst("UserId")?.Value;
-                Guid userId;
 
-                if (!string.IsNullOrEmpty(userIdClaim) && Guid.TryParse(userIdClaim, out var parsedUserId))
+                if (!Guid.TryParse(userIdClaim, out var userId))
                 {
-                    userId = parsedUserId;
+                    return Unauthorized(new { error = "Invalid Login." });
                 }
-                else
+
+                var currentUser = await _db.Users.FindAsync(userId);
+                if (currentUser == null)
                 {
-                    // Development fallback for Swagger/testing
-                    userId = Guid.Parse("6ababd68-c89a-4ddb-ad10-3065e37be775"); // guid for user issa
+                    return Unauthorized(new { error = "Invalid User." });
                 }
 
                 var moduleList = new ModuleList
