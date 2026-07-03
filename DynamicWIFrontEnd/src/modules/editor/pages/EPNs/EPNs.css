@@ -73,23 +73,21 @@
 
   /* GRID - matching component-grid */
   .epns-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 20px;
+    columns: 250px;
+    column-gap: 10px;
   }
 
   /* CARD - matching component-card */
   .epns-card {
+    display: inline-block;
+    width: 100%;
+    break-inside: avoid;
     border: 1px solid #ddd;
     border-radius: 10px;
     overflow: hidden;
     background: #fff;
     position: relative;
-    display: flex;
-    flex-direction: column;
-    align-self: start;
   }
-
   /* IMAGE CONTAINER - matching component-image */
   .epns-card-image {
     width: 100%;
@@ -614,18 +612,20 @@
   }
 
   .component-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 20px;
+    columns: 250px;
+    column-gap: 10px;
   }
 
   .component-card {
+    display: inline-block;
+    width: 100%;
+    break-inside: avoid;
+
     border: 1px solid #ddd;
     border-radius: 10px;
     overflow: hidden;
     background: #fff;
     position: relative;
-    align-self: start;
   }
 
   .component-image {
