@@ -87,6 +87,7 @@
     position: relative;
     display: flex;
     flex-direction: column;
+    align-self: start;
   }
 
   /* IMAGE CONTAINER - matching component-image */
@@ -624,6 +625,7 @@
     overflow: hidden;
     background: #fff;
     position: relative;
+    align-self: start;
   }
 
   .component-image {
@@ -1052,4 +1054,4 @@
   to { transform: rotate(360deg); }
 }
 
-
+
