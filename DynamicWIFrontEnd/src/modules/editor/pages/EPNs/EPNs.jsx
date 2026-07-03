@@ -10,12 +10,40 @@ import {
   clearError,
   photoUrl
 } from '../../../../redux/slices/epnsSlice'
-import { LayoutGrid, List, Search, Target, Trash2 } from 'lucide-react'
+import { LayoutGrid, List, Search, Target, Trash2, X } from 'lucide-react'
 import EPNForm from './EPNForm'
 import EPNCard from './EPNCard'
 import EPNphotos from './EPNphotos'
 import CavityRenderer from './CavityRenderer'
 import './EPNs.css'
+
+// ─── DeleteModal ──────────────────────────────────────────────────────────────
+
+function DeleteModal({ epn, onConfirm, onCancel }) {
+  return (
+    <div className="component-modal-overlay">
+      <div className="component-modal-box">
+        <button className="component-modal-close" onClick={onCancel}>
+          <X size={16} />
+        </button>
+        <div className="component-modal-icon">
+          <Trash2 size={28} color="#d9534f" />
+        </div>
+        <h3 className="component-modal-title">Delete EPN</h3>
+        <p className="component-modal-text">
+          Are you sure you want to delete EPN <strong>{epn?.epn}</strong> ? 
+          This action cannot be undone.
+        </p>
+        <div className="component-modal-actions">
+          <button className="component-modal-cancel" onClick={onCancel}>Cancel</button>
+          <button className="component-modal-confirm" onClick={onConfirm}>Delete</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Main Component ──────────────────────────────────────────────────────────
 
 export default function EPNs({ onCoordinateCavities }) {
   const dispatch = useDispatch()
@@ -29,6 +57,7 @@ export default function EPNs({ onCoordinateCavities }) {
   const [viewMode, setViewMode] = useState('grid')
   const [searchQuery, setSearchQuery] = useState('')
   const [hoveredEpnId, setHoveredEpnId] = useState(null)
+  const [deleteEpnData, setDeleteEpnData] = useState(null)
 
   useEffect(() => {
     dispatch(fetchEpns())
@@ -94,13 +123,31 @@ export default function EPNs({ onCoordinateCavities }) {
     }
   }
 
-  const handleDelete = async (epn) => {
-    if (!window.confirm('Delete this EPN?')) return
-    dispatch(deleteEpn(epn.id))
+  const handleDeleteClick = (epn) => {
+    setDeleteEpnData(epn)
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteEpnData) return
+    await dispatch(deleteEpn(deleteEpnData.id))
+    setDeleteEpnData(null)
+  }
+
+  const handleDeleteCancel = () => {
+    setDeleteEpnData(null)
   }
 
   return (
     <div className="epns-page">
+      {/* Delete Modal */}
+      {deleteEpnData && (
+        <DeleteModal 
+          epn={deleteEpnData}
+          onConfirm={handleDeleteConfirm}
+          onCancel={handleDeleteCancel}
+        />
+      )}
+
       <div className="epns-header">
         <div className="epns-tabs">
           <button
@@ -198,12 +245,11 @@ export default function EPNs({ onCoordinateCavities }) {
               )}
               
               {epns.map(epn => (
-                console.log('EPN clicked:', epn),
                 <EPNCard
                   key={epn.id}
                   epn={epn}
                   onCoordinate={onCoordinateCavities}
-                  onDelete={handleDelete}
+                  onDelete={handleDeleteClick}
                 />
               ))}
             </div>
@@ -301,7 +347,7 @@ export default function EPNs({ onCoordinateCavities }) {
                           )}
                         </button>
                         <button
-                          onClick={() => handleDelete(epn)}
+                          onClick={() => handleDeleteClick(epn)}
                           title="Delete EPN"
                           style={{ background: "none", border: "none", color: "#d9534f", cursor: "pointer", padding: "6px", marginLeft: "4px" }}
                         >
