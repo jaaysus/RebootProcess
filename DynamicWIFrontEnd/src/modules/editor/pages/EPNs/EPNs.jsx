@@ -80,45 +80,32 @@ export default function EPNs({ onCoordinateCavities }) {
     return createEpn.fulfilled.match(result)
   }
 
-  const handleImport = async (rows) => {
+  // Called once, right before the import loop starts
+  const handleImportStart = () => {
     setError('')
     setSuccessMessage('')
     dispatch(clearError())
+  }
 
-    let successCount = 0
-    let failCount = 0
+  // Called for each row in the import preview modal, one at a time
+  const handleImportRow = async ({ epn, cavityCount }) => {
+    const result = await dispatch(createEpn({
+      epn,
+      cavityCount,
+    }))
+    return createEpn.fulfilled.match(result)
+  }
 
-    for (const row of rows) {
-      const keys = Object.keys(row)
-      const epnName = String(row.EPN || row.epn || row[keys[0]] || '').trim()
-      const cavityCount = row.CavityCount || row['Cavity Count'] || row.count || row[keys[1]]
-      
-      if (!epnName) {
-        failCount++
-        continue
-      }
-
-      const result = await dispatch(createEpn({
-        epn: epnName,
-        cavityCount: parseInt(cavityCount, 10) || 0,
-      }))
-
-      if (createEpn.fulfilled.match(result)) {
-        successCount++
-      } else {
-        failCount++
-      }
-    }
-
-    // Show success message briefly, then clear
+  // Called once the full import loop finishes
+  const handleImportComplete = (successCount, failCount) => {
     if (failCount === 0) {
-      setSuccessMessage(`Successfully imported ${successCount} EPNs`)
+      setSuccessMessage(`Successfully imported ${successCount} EPN${successCount !== 1 ? 's' : ''}`)
       setTimeout(() => setSuccessMessage(''), 3000)
     } else if (successCount > 0) {
       setSuccessMessage(`Import completed: ${successCount} successful, ${failCount} failed`)
       setTimeout(() => setSuccessMessage(''), 5000)
     } else {
-      setError(`Import failed: ${failCount} errors`)
+      setError(`Import failed: ${failCount} error${failCount !== 1 ? 's' : ''}`)
       setTimeout(() => setError(''), 5000)
     }
   }
@@ -173,7 +160,10 @@ export default function EPNs({ onCoordinateCavities }) {
             loading={loading} 
             error={error} 
             successMessage={successMessage}
-            onImport={handleImport}
+            onImportRow={handleImportRow}
+            onImportStart={handleImportStart}
+            onImportComplete={handleImportComplete}
+            existingEpns={epns.map(e => e.epn)}
           />
 
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
