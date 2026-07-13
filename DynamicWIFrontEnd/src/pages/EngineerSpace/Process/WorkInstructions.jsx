@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import {
   FaFileAlt,
   FaEdit,
@@ -10,8 +11,25 @@ import {
 } from "react-icons/fa";
 import "bootstrap/dist/css/bootstrap.min.css";
 import AppNavbar from "../../../components/Navbar";
-import AccordionTable from "../../../components/AccordionTable";
-import { api } from "../../../redux/api";
+import {
+  fetchWireData,
+  createWireData,
+  updateWireData,
+  deleteWireData,
+  deleteAllWireData,
+  uploadWireData,
+  fetchNodeLookup,
+  selectWireData,
+  selectWireDataLoading,
+  selectWireDataUploading,
+  selectWireDataError,
+  selectNodeResult,
+  selectNodeLoading,
+  selectNodeError,
+  clearError,
+  clearNodeError,
+  clearNodeResult,
+} from "../../../redux/slices/wireDataSlice";
 
 // ─── Wire Data ───────────────────────────────────────────────────────────────
 const WIRE_COLUMNS = [
@@ -23,10 +41,12 @@ const WIRE_COLUMNS = [
   { label: "Loc" },
   { label: "Node" },
   { label: "EPN" },
-  { label: "Total Cav" },
   { label: "Cavity" },
   { label: "Module" },
   { label: "Station" },
+  { label: "Twist" },
+  { label: "Core" },
+  { label: "Splice" },
   { label: "Actions", style: { width: 100 } },
 ];
 
@@ -39,51 +59,55 @@ const emptyWire = {
   loc: "",
   node: "",
   epn: "",
-  totalCav: "",
   cavity: "",
   module: "",
   station: "",
+  twist: "",
+  core: "",
+  splice: "",
 };
 
 export default function WorkInstructions() {
-  // ── Wire state ─────────────────────────────────────────────────
-  const [wires, setWires] = useState([]);
-  const [wiresLoading, setWiresLoading] = useState(false);
+  const dispatch = useDispatch();
+
+  // ── Redux state ─────────────────────────────────────────────────
+  const wires = useSelector(selectWireData);
+  const wiresLoading = useSelector(selectWireDataLoading);
+  const uploadingWires = useSelector(selectWireDataUploading);
+  const error = useSelector(selectWireDataError);
+  const nodeResult = useSelector(selectNodeResult);
+  const nodeLoading = useSelector(selectNodeLoading);
+  const nodeError = useSelector(selectNodeError);
+
+  // ── Local state ────────────────────────────────────────────────
   const [wireFile, setWireFile] = useState(null);
-  const [uploadingWires, setUploadingWires] = useState(false);
   const [wireForm, setWireForm] = useState(emptyWire);
   const [selectedWire, setSelectedWire] = useState(null);
   const [showWireAdd, setShowWireAdd] = useState(false);
   const [showWireEdit, setShowWireEdit] = useState(false);
   const [showWireDelete, setShowWireDelete] = useState(false);
-
-  // ── Node lookup ────────────────────────────────────────────────
   const [nodeQuery, setNodeQuery] = useState("");
-  const [nodeResult, setNodeResult] = useState(null);
-  const [nodeLoading, setNodeLoading] = useState(false);
-  const [nodeError, setNodeError] = useState("");
-
-  const [error, setError] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
 
   // ════════════════════════════════════════════════════════════════
-  //  Fetch helpers
+  //  Fetch data on mount
   // ════════════════════════════════════════════════════════════════
-  const fetchWires = async () => {
-    setWiresLoading(true);
-    try {
-      const res = await api.get("/wiredata");
-      setWires(res.data);
-    } catch (err) {
-      console.error(err);
-      setError("Failed to fetch wire data.");
-    } finally {
-      setWiresLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchWires();
-  }, []);
+    dispatch(fetchWireData());
+  }, [dispatch]);
+
+  // ════════════════════════════════════════════════════════════════
+  //  Search filtering
+  // ════════════════════════════════════════════════════════════════
+  const searchKeys = ["WireNumber", "Node", "Epn", "Module", "Station", "Loc"];
+  const filteredWires = wires.filter(wire => {
+    if (!searchQuery.trim()) return true;
+    const query = searchQuery.toLowerCase();
+    return searchKeys.some(key => {
+      const value = wire[key];
+      return value && String(value).toLowerCase().includes(query);
+    });
+  });
 
   // ════════════════════════════════════════════════════════════════
   //  Wire CRUD
@@ -94,74 +118,48 @@ export default function WorkInstructions() {
   const handleWireUpload = async (e) => {
     e.preventDefault();
     if (!wireFile) return;
-    setUploadingWires(true);
-    setError("");
-    const fd = new FormData();
-    fd.append("file", wireFile);
-    try {
-      const res = await api.post("/wiredata/upload", fd, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      setWires(res.data);
+    dispatch(clearError());
+    const result = await dispatch(uploadWireData(wireFile));
+    if (uploadWireData.fulfilled.match(result)) {
       setWireFile(null);
       document.getElementById("wire-file-input").value = "";
-    } catch (err) {
-      setError(err.response?.data || "Failed to upload Wire Data Excel.");
-    } finally {
-      setUploadingWires(false);
     }
   };
 
   const handleAddWire = async () => {
-    try {
-      await api.post("/wiredata", {
-        ...wireForm,
-        csa: parseFloat(wireForm.csa) || 0,
-        length: parseFloat(wireForm.length) || 0,
-        totalCav: parseInt(wireForm.totalCav, 10) || 0,
-      });
-      fetchWires();
+    const result = await dispatch(createWireData(wireForm));
+    if (createWireData.fulfilled.match(result)) {
+      setWireForm(emptyWire);
       setShowWireAdd(false);
-    } catch {
-      setError("Failed to create wire.");
+      dispatch(clearError());
     }
   };
 
   const handleEditWire = async () => {
     if (!selectedWire) return;
-    try {
-      await api.put(`/wiredata/${selectedWire.id}`, {
-        id: selectedWire.id,
-        ...wireForm,
-        csa: parseFloat(wireForm.csa) || 0,
-        length: parseFloat(wireForm.length) || 0,
-        totalCav: parseInt(wireForm.totalCav, 10) || 0,
-      });
-      fetchWires();
+    const result = await dispatch(updateWireData({ id: selectedWire.Id, body: wireForm }));
+    if (updateWireData.fulfilled.match(result)) {
       setShowWireEdit(false);
-    } catch {
-      setError("Failed to update wire.");
+      setSelectedWire(null);
+      setWireForm(emptyWire);
+      dispatch(clearError());
     }
   };
 
   const handleDeleteWire = async () => {
     if (!selectedWire) return;
-    try {
-      await api.delete(`/wiredata/${selectedWire.id}`);
-      fetchWires();
+    const result = await dispatch(deleteWireData(selectedWire.Id));
+    if (deleteWireData.fulfilled.match(result)) {
       setShowWireDelete(false);
-    } catch {
-      setError("Failed to delete wire.");
+      setSelectedWire(null);
+      dispatch(clearError());
     }
   };
 
   const handleDeleteAllWires = async () => {
-  try {
-      await api.delete("/wiredata");
-      fetchWires();
-      setShowWireDelete(false);
-    } catch {
-      setError("Failed to delete all wires.");
+    const result = await dispatch(deleteAllWireData());
+    if (deleteAllWireData.fulfilled.match(result)) {
+      dispatch(clearError());
     }
   };
 
@@ -175,10 +173,12 @@ export default function WorkInstructions() {
       <td>{w.loc}</td>
       <td className="fw-semibold">{w.node}</td>
       <td><code>{w.epn}</code></td>
-      <td>{w.totalCav}</td>
       <td>{w.cavity}</td>
       <td>{w.module}</td>
       <td>{w.station}</td>
+      <td>{w.twist}</td>
+      <td>{w.core}</td>
+      <td>{w.splice}</td>
       <td>
         <div className="d-flex gap-2">
           <button
@@ -186,9 +186,11 @@ export default function WorkInstructions() {
             onClick={() => {
               setSelectedWire(w);
               setWireForm({
+                id: w.id,
                 wireNumber: w.wireNumber, csa: w.csa, length: w.length,
                 c1: w.c1, c2: w.c2, loc: w.loc, node: w.node, epn: w.epn,
-                totalCav: w.totalCav, cavity: w.cavity, module: w.module, station: w.station,
+                cavity: w.cavity, module: w.module, station: w.station,
+                twist: w.twist, core: w.core, splice: w.splice,
               });
               setShowWireEdit(true);
             }}
@@ -212,17 +214,9 @@ export default function WorkInstructions() {
   const handleNodeLookup = async (e) => {
     e.preventDefault();
     if (!nodeQuery.trim()) return;
-    setNodeLoading(true);
-    setNodeError("");
-    setNodeResult(null);
-    try {
-      const res = await api.get(`/wiredata/node/${encodeURIComponent(nodeQuery.trim())}`);
-      setNodeResult(res.data);
-    } catch (err) {
-      setNodeError(err.response?.data?.message || `No wires found for node "${nodeQuery}".`);
-    } finally {
-      setNodeLoading(false);
-    }
+    dispatch(clearNodeResult());
+    dispatch(clearNodeError());
+    await dispatch(fetchNodeLookup(nodeQuery));
   };
 
   // ════════════════════════════════════════════════════════════════
@@ -249,7 +243,7 @@ export default function WorkInstructions() {
         {error && (
           <div className="alert alert-danger alert-dismissible fade show mb-4 shadow-sm" role="alert">
             {error}
-            <button type="button" className="btn-close" onClick={() => setError("")} />
+            <button type="button" className="btn-close" onClick={() => dispatch(clearError())} />
           </div>
         )}
 
@@ -298,12 +292,14 @@ export default function WorkInstructions() {
                 </form>
               </div>
             </div>
-                                                        <button
-                                  className="btn btn-sm btn-danger"
-                                  onClick={handleDeleteAllWires}
-                                >
-                                  Delete All Wires
-                                </button>
+
+            <button
+              className="btn btn-sm btn-danger w-100 mb-3"
+              onClick={handleDeleteAllWires}
+            >
+              Delete All Wires
+            </button>
+
             {/* Node lookup card */}
             <div className="card border-0 shadow-sm rounded-3">
               <div className="card-header py-3" style={{ backgroundColor: "#16213e" }}>
@@ -335,24 +331,27 @@ export default function WorkInstructions() {
                 </form>
 
                 {nodeError && (
-                  <div className="alert alert-warning py-2 small">{nodeError}</div>
+                  <div className="alert alert-warning py-2 small d-flex justify-content-between align-items-center">
+                    {nodeError}
+                    <button type="button" className="btn-close btn-close-sm" onClick={() => dispatch(clearNodeError())} />
+                  </div>
                 )}
 
                 {nodeResult && (
                   <div>
                     <div className="mb-2">
-                      <span className="fw-bold">Node:</span> <code>{nodeResult.nodeName}</code>
+                      <span className="fw-bold">Node:</span> <code>{nodeResult.NodeName}</code>
                     </div>
                     <div className="mb-2">
-                      <span className="fw-bold">EPN:</span> <code>{nodeResult.epn}</code>
-                      {nodeResult.epnId && (
-                        <span className="ms-2 badge bg-secondary">ID #{nodeResult.epnId}</span>
+                      <span className="fw-bold">EPN:</span> <code>{nodeResult.Epn}</code>
+                      {nodeResult.EpnId && (
+                        <span className="ms-2 badge bg-secondary">ID #{nodeResult.EpnId}</span>
                       )}
                     </div>
                     <div className="mb-2">
-                      <span className="fw-bold">Cavity Count:</span> {nodeResult.cavityCount}
+                      <span className="fw-bold">Cavity Count:</span> {nodeResult.CavityCount}
                     </div>
-                    {nodeResult.needsCoordination && (
+                    {nodeResult.NeedsCoordination && (
                       <div className="alert alert-warning py-1 small mb-2">
                         ⚠ EPN coordinates not set yet.
                       </div>
@@ -362,7 +361,7 @@ export default function WorkInstructions() {
                     <div className="mb-2">
                       <span className="fw-bold small d-block mb-1">Cavity Colors (from wire data):</span>
                       <div className="d-flex flex-wrap gap-1">
-                        {Object.entries(nodeResult.cavityColors || {}).map(([cav, colors]) => (
+                        {Object.entries(nodeResult.CavityColors || {}).map(([cav, colors]) => (
                           <span key={cav} className="badge rounded-pill text-bg-dark small">
                             Cav {cav}: {colors.join(" / ")}
                           </span>
@@ -379,13 +378,13 @@ export default function WorkInstructions() {
                           </tr>
                         </thead>
                         <tbody>
-                          {(nodeResult.wires || []).map((w) => (
-                            <tr key={w.id}>
-                              <td><code>{w.wireNumber}</code></td>
-                              <td>{w.cavity}</td>
-                              <td><span className="badge bg-secondary">{w.c1}</span></td>
-                              <td><span className="badge bg-secondary">{w.c2}</span></td>
-                              <td>{w.module}</td>
+                          {(nodeResult.Wires || []).map((w) => (
+                            <tr key={w.Id}>
+                              <td><code>{w.WireNumber}</code></td>
+                              <td>{w.Cavity}</td>
+                              <td><span className="badge bg-secondary">{w.C1}</span></td>
+                              <td><span className="badge bg-secondary">{w.C2}</span></td>
+                              <td>{w.Module}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -397,34 +396,87 @@ export default function WorkInstructions() {
             </div>
           </div>
 
-          {/* Wire Data accordion */}
+          {/* Wire Data table */}
           <div className="col-12 col-lg-8">
-            <div className="accordion shadow-sm rounded-3" id="wireDataAccordion">
-              <AccordionTable
-                id="wireDataTable"
-                icon={<FaPlug className="text-white" />}
-                title="Wire Data"
-                defaultOpen
-                toolbar={
-                  <button
-                    className="btn btn-sm d-flex align-items-center gap-1 text-white"
-                    style={{ backgroundColor: "#1a1a2e" }}
-                    onClick={() => { setWireForm(emptyWire); setShowWireAdd(true); }}
-                  >
-                    <FaPlus /> Add Wire
-                  </button>
-                }
-                totalCount={wires.length}
-                totalLabel="wires"
-                columns={WIRE_COLUMNS}
-                data={wires}
-                loading={wiresLoading}
-                renderRow={renderWireRow}
-                emptyText="No wire data imported yet. Use the upload panel to import Excel data."
-                searchable
-                searchPlaceholder="Search wire, node, EPN, module..."
-                searchKeys={["wireNumber", "node", "epn", "module", "station", "loc"]}
-              />
+            <div className="card border-0 shadow-sm rounded-3 h-100">
+              <div className="card-header py-3 d-flex justify-content-between align-items-center" style={{ backgroundColor: "#1a1a2e" }}>
+                <h5 className="mb-0 fw-bold d-flex align-items-center gap-2 text-white">
+                  <FaPlug /> Wire Data
+                </h5>
+                <button
+                  className="btn btn-sm d-flex align-items-center gap-1 text-white"
+                  style={{ backgroundColor: "#0f1623" }}
+                  onClick={() => { setWireForm(emptyWire); setShowWireAdd(true); }}
+                >
+                  <FaPlus /> Add Wire
+                </button>
+              </div>
+              <div className="card-body py-4">
+                {/* Search bar */}
+                <div className="mb-3">
+                  <div className="input-group">
+                    <span className="input-group-text bg-light">
+                      <FaSearch />
+                    </span>
+                    <input
+                      type="text"
+                      className="form-control"
+                      placeholder="Search wire, node, EPN, module..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                    {searchQuery && (
+                      <button
+                        className="btn btn-outline-secondary"
+                        type="button"
+                        onClick={() => setSearchQuery("")}
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </div>
+                  <div className="form-text text-muted small mt-1">
+                    Showing {filteredWires.length} of {wires.length} wires
+                  </div>
+                </div>
+
+                {/* Table */}
+                <div className="table-responsive">
+                  <table className="table table-hover align-middle">
+                    <thead className="table-light">
+                      <tr>
+                        {WIRE_COLUMNS.map((col, i) => (
+                          <th key={i} style={col.style}>
+                            {col.label}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {wiresLoading ? (
+                        <tr>
+                          <td colSpan={WIRE_COLUMNS.length} className="text-center py-4">
+                            <div className="spinner-border spinner-border-sm" role="status" />
+                          </td>
+                        </tr>
+                      ) : filteredWires.length === 0 ? (
+                        <tr>
+                          <td
+                            colSpan={WIRE_COLUMNS.length}
+                            className="text-center text-muted py-4"
+                          >
+                            {searchQuery
+                              ? "No wires match your search."
+                              : "No wire data imported yet. Use the upload panel to import Excel data."}
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredWires.map(renderWireRow)
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -456,7 +508,7 @@ export default function WorkInstructions() {
       {showWireDelete && (
         <ModalWrapper title="Delete Wire" headerClass="text-white" headerStyle={{ backgroundColor: "#1a1a2e" }} onClose={() => setShowWireDelete(false)}>
           <div className="modal-body">
-            <p>Are you sure you want to delete wire <strong>{selectedWire?.wireNumber}</strong>?</p>
+            <p>Are you sure you want to delete wire <strong>{selectedWire?.WireNumber}</strong>?</p>
           </div>
           <div className="modal-footer">
             <button className="btn btn-secondary" onClick={() => setShowWireDelete(false)}>Cancel</button>
@@ -500,10 +552,12 @@ function WireForm({ form, onChange }) {
     { label: "Loc", name: "loc" },
     { label: "Node", name: "node" },
     { label: "EPN", name: "epn" },
-    { label: "Total Cavities", name: "totalCav", type: "number" },
     { label: "Cavity", name: "cavity" },
     { label: "Module", name: "module" },
     { label: "Station", name: "station" },
+    { label: "Twist", name: "twist" },
+    { label: "Core", name: "core" },
+    { label: "Splice", name: "splice" },
   ];
   return (
     <div className="modal-body">

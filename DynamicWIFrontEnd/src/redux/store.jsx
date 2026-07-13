@@ -4,6 +4,7 @@ import userReducer from './slices/userSlice';
 import epnsReducer from './slices/epnsSlice';
 import compositesReducer from './slices/compositeSlice';
 import moduleListsReducer from './slices/moduleListsSlice';
+import wireDataReducer from './slices/wireDataSlice';
 
 export const store = configureStore({
   reducer: {
@@ -12,5 +13,6 @@ export const store = configureStore({
     epns: epnsReducer,
     composites: compositesReducer,
     moduleLists: moduleListsReducer,
+    wireData: wireDataReducer,
   },
 });
