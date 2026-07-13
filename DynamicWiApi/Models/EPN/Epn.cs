@@ -17,5 +17,9 @@ public class Epn
     public ICollection<EpnCavity> Cavities { get; set; }
         = new List<EpnCavity>();
 
+    // NEW: every physical connector instance built from this housing type.
+    public ICollection<Node> Nodes { get; set; }
+        = new List<Node>();
+
     public bool NeedsCoordination { get; set; }
 }

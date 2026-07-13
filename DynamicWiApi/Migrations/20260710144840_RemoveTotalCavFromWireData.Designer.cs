@@ -4,6 +4,7 @@ using DynamicWiApi.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DynamicWi.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260710144840_RemoveTotalCavFromWireData")]
+    partial class RemoveTotalCavFromWireData
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -237,36 +240,6 @@ namespace DynamicWi.Migrations
                     b.ToTable("ModuleListEntries");
                 });
 
-            modelBuilder.Entity("DynamicWiApi.Models.Node", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("EpnId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("Station")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("EpnId");
-
-                    b.HasIndex("Name")
-                        .IsUnique();
-
-                    b.ToTable("Nodes");
-                });
-
             modelBuilder.Entity("DynamicWiApi.Models.Operator", b =>
                 {
                     b.Property<Guid>("Id")
@@ -333,7 +306,7 @@ namespace DynamicWi.Migrations
                     b.ToTable("Users");
                 });
 
-            modelBuilder.Entity("DynamicWiApi.Models.Wire", b =>
+            modelBuilder.Entity("DynamicWiApi.Models.WireData", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -341,35 +314,64 @@ namespace DynamicWi.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("ColorC1")
+                    b.Property<string>("C1")
                         .IsRequired()
-                        .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
-                    b.Property<string>("ColorC2")
+                    b.Property<string>("C2")
                         .IsRequired()
-                        .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Cavity")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("Core")
                         .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<double>("Csa")
                         .HasColumnType("float");
 
+                    b.Property<string>("Epn")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<double>("Length")
                         .HasColumnType("float");
+
+                    b.Property<string>("Loc")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("Module")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<string>("SpliceCode")
+                    b.Property<string>("Node")
+                        .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Splice")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Station")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Twist")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("WireNumber")
                         .IsRequired()
@@ -378,49 +380,7 @@ namespace DynamicWi.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("SpliceCode");
-
-                    b.HasIndex("WireNumber");
-
-                    b.ToTable("Wires");
-                });
-
-            modelBuilder.Entity("DynamicWiApi.Models.WireEnd", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Cavity")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<string>("Location")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<int>("NodeId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Station")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<int>("WireId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("WireId");
-
-                    b.HasIndex("NodeId", "Cavity");
-
-                    b.ToTable("WireEnds");
+                    b.ToTable("WireDatas");
                 });
 
             modelBuilder.Entity("DynamicWiApi.Models.Epn", b =>
@@ -463,41 +423,9 @@ namespace DynamicWi.Migrations
                     b.Navigation("ModuleList");
                 });
 
-            modelBuilder.Entity("DynamicWiApi.Models.Node", b =>
-                {
-                    b.HasOne("DynamicWiApi.Models.Epn", "Epn")
-                        .WithMany("Nodes")
-                        .HasForeignKey("EpnId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Epn");
-                });
-
-            modelBuilder.Entity("DynamicWiApi.Models.WireEnd", b =>
-                {
-                    b.HasOne("DynamicWiApi.Models.Node", "Node")
-                        .WithMany("Ends")
-                        .HasForeignKey("NodeId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("DynamicWiApi.Models.Wire", "Wire")
-                        .WithMany("Ends")
-                        .HasForeignKey("WireId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Node");
-
-                    b.Navigation("Wire");
-                });
-
             modelBuilder.Entity("DynamicWiApi.Models.Epn", b =>
                 {
                     b.Navigation("Cavities");
-
-                    b.Navigation("Nodes");
                 });
 
             modelBuilder.Entity("DynamicWiApi.Models.EpnPhoto", b =>
@@ -508,16 +436,6 @@ namespace DynamicWi.Migrations
             modelBuilder.Entity("DynamicWiApi.Models.ModuleList", b =>
                 {
                     b.Navigation("Entries");
-                });
-
-            modelBuilder.Entity("DynamicWiApi.Models.Node", b =>
-                {
-                    b.Navigation("Ends");
-                });
-
-            modelBuilder.Entity("DynamicWiApi.Models.Wire", b =>
-                {
-                    b.Navigation("Ends");
                 });
 #pragma warning restore 612, 618
         }

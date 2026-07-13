@@ -36,9 +36,6 @@ namespace DynamicWiApi.Models
         public string Epn { get; set; } = string.Empty;
 
         [Required]
-        public int TotalCav { get; set; }
-
-        [Required]
         [MaxLength(50)]
         public string Cavity { get; set; } = string.Empty;
 
@@ -47,5 +44,11 @@ namespace DynamicWiApi.Models
 
         [MaxLength(100)]
         public string Station { get; set; } = string.Empty;
+
+        // Harness trace fields
+        public string Twist { get; set; } = string.Empty;
+        public string Core { get; set; } = string.Empty;
+        [MaxLength(100)]
+        public string Splice { get; set; } = string.Empty;
     }
 }

@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using System.IO;
+using DynamicWiApi.Services;
 
 
 
@@ -42,6 +43,9 @@ builder.Services.AddAuthentication("Bearer")
             )
         };
     });
+
+builder.Services.AddScoped<HarnessGraphService>();
+builder.Services.AddScoped<HarnessImportService>();
 
 builder.Services.AddAuthorization();
 builder.Services.AddControllers();

@@ -1,0 +1,518 @@
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using DynamicWiApi.Data;
+using DynamicWiApi.Models;
+
+namespace DynamicWiApi.Controllers
+{
+    [ApiController]
+    [Route("api/wiretrace")]
+    public class WireTraceController : ControllerBase
+    {
+        private readonly AppDbContext _db;
+
+        public WireTraceController(AppDbContext db)
+        {
+            _db = db;
+        }
+
+        [HttpPost("process")]
+        public async Task<IActionResult> Process([FromBody] WireTraceProcessRequest request)
+        {
+            try
+            {
+                // Load module list
+                var moduleList = await _db.ModuleLists
+                    .Include(m => m.Entries)
+                    .FirstOrDefaultAsync(m => m.Id == request.ModuleListId);
+
+                if (moduleList == null)
+                    return NotFound(new WireTraceProcessResponse 
+                    { 
+                        Status = "Error", 
+                        ErrorMessage = "Module list not found" 
+                    });
+
+                // Parse module list entries
+                var moduleRows = ParseModuleList(moduleList.Entries, request.CropFirst, request.CropLast, request.RawIdx);
+                if (!moduleRows.Any())
+                    return BadRequest(new WireTraceProcessResponse 
+                    { 
+                        Status = "Error", 
+                        ErrorMessage = "Could not parse any module list rows" 
+                    });
+
+                // Parse LJS string
+                var bits = ParseLjs(request.LjsString, moduleRows.Count);
+                if (bits == null)
+                    return BadRequest(new WireTraceProcessResponse 
+                    { 
+                        Status = "Error", 
+                        ErrorMessage = "Could not find a binary (1/x) field in the LJS line" 
+                    });
+
+                // Determine included modules
+                var includedModules = new HashSet<string>();
+                for (int i = 0; i < moduleRows.Count; i++)
+                {
+                    if (i < bits.Length && bits[i] == '1')
+                        includedModules.Add(moduleRows[i].TransformedCode);
+                }
+
+                // Load and filter wire data
+                var allWireRows = await _db.WireDatas.ToListAsync();
+                var activeRows = allWireRows.Where(r => includedModules.Contains(r.Module)).ToList();
+
+                if (!activeRows.Any())
+                    return BadRequest(new WireTraceProcessResponse 
+                    { 
+                        Status = "Warning", 
+                        ErrorMessage = "No wire rows matched the included module codes",
+                        IncludedModules = includedModules.ToList(),
+                        ActiveWireCount = 0
+                    });
+
+                // Build graph structure
+                var graph = BuildGraph(activeRows);
+
+                // Group by station
+                var byStation = new Dictionary<string, List<int>>();
+                for (int i = 0; i < activeRows.Count; i++)
+                {
+                    var station = activeRows[i].Station ?? "Unknown";
+                    if (!byStation.ContainsKey(station))
+                        byStation[station] = new List<int>();
+                    byStation[station].Add(i);
+                }
+
+                // Build station info
+                var stations = byStation.Select(kvp => 
+                {
+                    var stationModules = new HashSet<string>();
+                    kvp.Value.ForEach(idx => 
+                    {
+                        var module = activeRows[idx].Module;
+                        if (!string.IsNullOrEmpty(module))
+                            stationModules.Add(module);
+                    });
+
+                    return new WireTraceStationInfo
+                    {
+                        StationName = kvp.Key,
+                        LegCount = kvp.Value.Count,
+                        ModuleCount = stationModules.Count,
+                        Modules = stationModules.ToList()
+                    };
+                }).OrderBy(s => s.StationName).ToList();
+
+                return Ok(new WireTraceProcessResponse
+                {
+                    IncludedModules = includedModules.ToList(),
+                    ActiveWireCount = activeRows.Count,
+                    Stations = stations,
+                    Status = "Success"
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new WireTraceProcessResponse
+                {
+                    Status = "Error",
+                    ErrorMessage = ex.Message
+                });
+            }
+        }
+
+        [HttpPost("station-legs")]
+        public async Task<IActionResult> GetStationLegs([FromBody] WireTraceProcessRequest request, [FromQuery] string stationName)
+        {
+            try
+            {
+                // Re-run processing to get active data
+                var processData = await ProcessData(request);
+                if (processData == null)
+                    return BadRequest("Processing failed");
+
+                var (activeRows, graph, includedModules) = processData.Value;
+
+                // Get legs for specific station
+                var stationLegs = activeRows
+                    .Select((row, idx) => new { Row = row, Index = idx })
+                    .Where(x => x.Row.Station == stationName)
+                    .ToList();
+
+                if (!stationLegs.Any())
+                    return NotFound($"No legs found for station '{stationName}'");
+
+                // Get station modules
+                var stationModules = stationLegs
+                    .Select(x => x.Row.Module)
+                    .Where(m => !string.IsNullOrEmpty(m))
+                    .Distinct()
+                    .ToList();
+
+                // Build legs with resolved terminals
+                var legs = stationLegs.Select(x =>
+                {
+                    var terminals = ResolveFromLeg(activeRows, graph, x.Index);
+                    return new WireTraceLegDto
+                    {
+                        LegId = x.Index,
+                        WireNb = x.Row.WireNumber,
+                        Node = x.Row.Node,
+                        Cav = x.Row.Cavity,
+                        Splice = x.Row.Splice,
+                        Reaches = terminals.Select(t => new WireTraceTerminalDto
+                        {
+                            Station = t.Station ?? "Unknown",
+                            Node = t.Node,
+                            Cav = t.Cav,
+                            Via = t.Via,
+                            IsLocal = t.Station == stationName
+                        }).ToList()
+                    };
+                }).ToList();
+
+                return Ok(new WireTraceStationLegsResponse
+                {
+                    StationName = stationName,
+                    LegCount = legs.Count,
+                    StationModules = stationModules,
+                    Legs = legs
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpPost("trace-leg")]
+        public async Task<IActionResult> TraceLeg([FromBody] WireTraceTraceRequest request)
+        {
+            try
+            {
+                var processRequest = new WireTraceProcessRequest
+                {
+                    ModuleListId = request.ModuleListId,
+                    LjsString = request.LjsString,
+                    CropFirst = request.CropFirst,
+                    CropLast = request.CropLast,
+                    RawIdx = request.RawIdx
+                };
+
+                var processData = await ProcessData(processRequest);
+                if (processData == null)
+                    return BadRequest("Processing failed");
+
+                var (activeRows, graph, includedModules) = processData.Value;
+
+                // Get source connector legs
+                var sourceLeg = activeRows[request.LegId];
+                var connector = sourceLeg.Node;
+                var connectorLegs = activeRows.Where(r => r.Node == connector).ToList();
+
+                if (!connectorLegs.Any())
+                    return NotFound($"No wires found for connector '{connector}'");
+
+                // Sort legs by cavity
+                var sortedLegs = connectorLegs
+                    .OrderBy(r => int.TryParse(r.Cavity, out var cavNum) ? cavNum : int.MaxValue)
+                    .ThenBy(r => r.Cavity)
+                    .ToList();
+
+                // Build source cavities
+                var sourceCavities = sortedLegs.Select((leg, idx) =>
+                {
+                    var legIdx = activeRows.IndexOf(leg);
+                    return new WireTraceSourceCavityDto
+                    {
+                        Cav = leg.Cavity,
+                        WireNb = leg.WireNumber,
+                        IsSelected = legIdx == request.LegId
+                    };
+                }).ToList();
+
+                // Build destinations
+                var destMap = new Dictionary<string, WireTraceDestinationDto>();
+
+                foreach (var leg in sortedLegs)
+                {
+                    var legIdx = activeRows.IndexOf(leg);
+                    var partnerIdx = DirectPartnerLeg(activeRows, graph, legIdx);
+                    
+                    if (partnerIdx == null) continue;
+
+                    var partner = activeRows[partnerIdx.Value];
+                    var throughSplice = IsSpliceCavity(partner.Cavity);
+                    var key = (throughSplice ? "SPLICE::" : "CONN::") + partner.Node;
+
+                    if (!destMap.ContainsKey(key))
+                    {
+                        var reaches = throughSplice ? BeyondSplice(activeRows, graph, partnerIdx.Value) : new List<WireTraceSpliceReachDto>();
+                        destMap[key] = new WireTraceDestinationDto
+                        {
+                            Name = partner.Node,
+                            IsSplice = throughSplice,
+                            Station = partner.Station ?? "Unknown",
+                            Legs = new List<WireTraceDestinationLegDto>(),
+                            Reaches = reaches
+                        };
+                    }
+
+                    destMap[key].Legs.Add(new WireTraceDestinationLegDto
+                    {
+                        SourceLegId = legIdx,
+                        SourceCav = leg.Cavity,
+                        WireNb = leg.WireNumber,
+                        Cavity = partner.Cavity,
+                        Station = partner.Station ?? "Unknown",
+                        IsLocal = partner.Station == request.StationName
+                    });
+                }
+
+                return Ok(new WireTraceConnectorResponse
+                {
+                    SourceConnector = connector,
+                    CavityCount = sortedLegs.Count,
+                    SourceCavities = sourceCavities,
+                    Destinations = destMap.Values.ToList()
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        #region Private Helper Methods
+
+        private class ModuleRow
+        {
+            public int RowIndex { get; set; }
+            public string RawCode { get; set; } = string.Empty;
+            public string TransformedCode { get; set; } = string.Empty;
+        }
+
+        private class GraphData
+        {
+            public Dictionary<string, List<int>> ByWire { get; set; } = new();
+            public Dictionary<string, List<int>> BySplice { get; set; } = new();
+            public List<List<GraphEdge>> Adj { get; set; } = new();
+        }
+
+        private class GraphEdge
+        {
+            public int To { get; set; }
+            public string Type { get; set; } = string.Empty;
+            public string? Splice { get; set; }
+        }
+
+        private class TerminalData
+        {
+            public string Station { get; set; } = string.Empty;
+            public string Node { get; set; } = string.Empty;
+            public string Cav { get; set; } = string.Empty;
+            public string? Via { get; set; }
+        }
+
+        private List<ModuleRow> ParseModuleList(ICollection<ModuleListEntry> entries, int cropFirst, int cropLast, int rawIdx)
+        {
+            var rows = new List<ModuleRow>();
+            
+            foreach (var entry in entries)
+            {
+                var raw = entry.Module?.Trim() ?? string.Empty;
+                if (string.IsNullOrEmpty(raw)) continue;
+
+                var end = Math.Max(0, raw.Length - cropLast);
+                if (end <= cropFirst) continue;
+
+                var code = raw.Substring(cropFirst, end - cropFirst);
+                rows.Add(new ModuleRow
+                {
+                    RowIndex = entry.RowIndex,
+                    RawCode = raw,
+                    TransformedCode = code
+                });
+            }
+
+            return rows.OrderBy(r => r.RowIndex).ToList();
+        }
+
+        private string? ParseLjs(string ljsText, int moduleCount)
+        {
+            var cleaned = ljsText.Trim();
+            var fields = cleaned.Split('@');
+            string? best = null;
+
+            foreach (var f in fields)
+            {
+                var trimmed = f.Trim();
+                if (System.Text.RegularExpressions.Regex.IsMatch(trimmed, "^[1xX]+$"))
+                {
+                    if (best == null || Math.Abs(trimmed.Length - moduleCount) < Math.Abs(best.Length - moduleCount))
+                        best = trimmed;
+                }
+            }
+
+            return best;
+        }
+
+        private GraphData BuildGraph(List<WireData> rows)
+        {
+            var byWire = new Dictionary<string, List<int>>();
+            var bySplice = new Dictionary<string, List<int>>();
+
+            for (int i = 0; i < rows.Count; i++)
+            {
+                var row = rows[i];
+                if (!byWire.ContainsKey(row.WireNumber))
+                    byWire[row.WireNumber] = new List<int>();
+                byWire[row.WireNumber].Add(i);
+
+                if (!string.IsNullOrEmpty(row.Splice))
+                {
+                    if (!bySplice.ContainsKey(row.Splice))
+                        bySplice[row.Splice] = new List<int>();
+                    bySplice[row.Splice].Add(i);
+                }
+            }
+
+            var adj = rows.Select(_ => new List<GraphEdge>()).ToList();
+
+            foreach (var kvp in byWire)
+            {
+                var legs = kvp.Value;
+                foreach (var a in legs)
+                {
+                    foreach (var b in legs)
+                    {
+                        if (a != b)
+                            adj[a].Add(new GraphEdge { To = b, Type = "wire" });
+                    }
+                }
+            }
+
+            foreach (var kvp in bySplice)
+            {
+                var legs = kvp.Value;
+                foreach (var a in legs)
+                {
+                    foreach (var b in legs)
+                    {
+                        if (a != b)
+                            adj[a].Add(new GraphEdge { To = b, Type = "splice", Splice = kvp.Key });
+                    }
+                }
+            }
+
+            return new GraphData { ByWire = byWire, BySplice = bySplice, Adj = adj };
+        }
+
+        private List<TerminalData> ResolveFromLeg(List<WireData> rows, GraphData graph, int startLeg)
+        {
+            var visited = new HashSet<int> { startLeg };
+            var queue = new Queue<(int Leg, string? Via)>();
+            queue.Enqueue((startLeg, null));
+            var results = new List<TerminalData>();
+
+            while (queue.Count > 0)
+            {
+                var (leg, via) = queue.Dequeue();
+                foreach (var edge in graph.Adj[leg])
+                {
+                    if (visited.Contains(edge.To)) continue;
+                    visited.Add(edge.To);
+
+                    var viaInfo = edge.Type == "splice" ? edge.Splice : via;
+                    results.Add(new TerminalData
+                    {
+                        Station = rows[edge.To].Station ?? "Unknown",
+                        Node = rows[edge.To].Node,
+                        Cav = rows[edge.To].Cavity,
+                        Via = viaInfo
+                    });
+
+                    queue.Enqueue((edge.To, viaInfo));
+                }
+            }
+
+            return results;
+        }
+
+        private int? DirectPartnerLeg(List<WireData> rows, GraphData graph, int legIdx)
+        {
+            var row = rows[legIdx];
+            var wireLegs = graph.ByWire.ContainsKey(row.WireNumber) ? graph.ByWire[row.WireNumber] : new List<int>();
+            var other = wireLegs.FirstOrDefault(i => i != legIdx);
+            return other == -1 ? null : other;
+        }
+
+        private bool IsSpliceCavity(string? cav)
+        {
+            var c = (cav ?? "").Trim().ToUpper();
+            return c == "L" || c == "R";
+        }
+
+        private List<WireTraceSpliceReachDto> BeyondSplice(List<WireData> rows, GraphData graph, int spliceLegIdx)
+        {
+            var terminals = ResolveFromLeg(rows, graph, spliceLegIdx);
+            var seen = new Dictionary<string, WireTraceSpliceReachDto>();
+
+            foreach (var t in terminals)
+            {
+                if (IsSpliceCavity(t.Cav)) continue;
+                if (!seen.ContainsKey(t.Node))
+                {
+                    seen[t.Node] = new WireTraceSpliceReachDto
+                    {
+                        Node = t.Node,
+                        Station = t.Station
+                    };
+                }
+            }
+
+            return seen.Values.ToList();
+        }
+
+        private async Task<(List<WireData> ActiveRows, GraphData Graph, HashSet<string> IncludedModules)?> ProcessData(WireTraceProcessRequest request)
+        {
+            var moduleList = await _db.ModuleLists
+                .Include(m => m.Entries)
+                .FirstOrDefaultAsync(m => m.Id == request.ModuleListId);
+
+            if (moduleList == null) return null;
+
+            var moduleRows = ParseModuleList(moduleList.Entries, request.CropFirst, request.CropLast, request.RawIdx);
+            if (!moduleRows.Any()) return null;
+
+            var bits = ParseLjs(request.LjsString, moduleRows.Count);
+            if (bits == null) return null;
+
+            var includedModules = new HashSet<string>();
+            for (int i = 0; i < moduleRows.Count; i++)
+            {
+                if (i < bits.Length && bits[i] == '1')
+                    includedModules.Add(moduleRows[i].TransformedCode);
+            }
+
+            var allWireRows = await _db.WireDatas.ToListAsync();
+            var activeRows = allWireRows.Where(r => includedModules.Contains(r.Module)).ToList();
+
+            if (!activeRows.Any()) return null;
+
+            var graph = BuildGraph(activeRows);
+
+            return (activeRows, graph, includedModules);
+        }
+
+        #endregion
+    }
+
+    public class WireTraceTraceRequest : WireTraceProcessRequest
+    {
+        public int LegId { get; set; }
+        public string StationName { get; set; } = string.Empty;
+    }
+}

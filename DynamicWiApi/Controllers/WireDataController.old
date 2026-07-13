@@ -85,7 +85,7 @@ namespace DynamicWiApi.Controllers
         epn = epnCode,
         epnId = epn?.Id,
         photo = epn?.Photo,
-        cavityCount = epn?.CavityCount ?? wires.First().TotalCav,
+        cavityCount = epn?.CavityCount ?? 0,
         needsCoordination = epn?.NeedsCoordination ?? true,
         coordinates,
         cavityColors,
@@ -93,6 +93,8 @@ namespace DynamicWiApi.Controllers
         {
             w.Id,
             w.WireNumber,
+            w.Twist,
+            w.Core,
             w.Csa,
             w.Length,
             w.C1,
@@ -100,18 +102,24 @@ namespace DynamicWiApi.Controllers
             w.Loc,
             w.Node,
             w.Epn,
-            w.TotalCav,
             w.Cavity,
+            w.Splice,
             w.Module,
             w.Station
         })
     });
 }
+
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] WireData model)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
+
+            // Ensure new fields are initialized
+            model.Twist ??= string.Empty;
+            model.Core ??= string.Empty;
+            model.Splice ??= string.Empty;
 
             _db.WireDatas.Add(model);
             await _db.SaveChangesAsync();
@@ -128,6 +136,8 @@ namespace DynamicWiApi.Controllers
             if (existing == null) return NotFound();
 
             existing.WireNumber = model.WireNumber;
+            existing.Twist = model.Twist;
+            existing.Core = model.Core;
             existing.Csa = model.Csa;
             existing.Length = model.Length;
             existing.C1 = model.C1;
@@ -135,8 +145,8 @@ namespace DynamicWiApi.Controllers
             existing.Loc = model.Loc;
             existing.Node = model.Node;
             existing.Epn = model.Epn;
-            existing.TotalCav = model.TotalCav;
             existing.Cavity = model.Cavity;
+            existing.Splice = model.Splice;
             existing.Module = model.Module;
             existing.Station = model.Station;
 
@@ -197,16 +207,18 @@ namespace DynamicWiApi.Controllers
                 }
 
                 int wireNbCol    = Col("WireNb", "Wire Nb", "WireNumber");
-                int csaCol       = Col("csa");
-                int lengthCol    = Col("length");
+                int twistCol     = Col("Twist", "TWIST");
+                int coreCol      = Col("Core", "CORE");
+                int csaCol       = Col("CSA", "csa");
+                int lengthCol    = Col("Length", "length");
                 int c1Col        = Col("C1");
                 int c2Col        = Col("C2");
-                int locCol       = Col("Loc");
+                int locCol       = Col("LOCATION", "Loc");
                 int nodeCol      = Col("Node");
-                int epnCol       = Col("EPN");
-                int totalCavCol  = Col("TotalCav", "Total cav", "Totalcav");
-                int cavityCol    = Col("Cavity");
-                int moduleCol    = Col("Module");
+                int epnCol       = Col("EPN", "EpnNod", "EPN NOD");
+                int cavityCol    = Col("Cav", "Cavity");
+                int spliceCol    = Col("ST+SPLICE", "Splice");
+                int moduleCol    = Col("Options", "Module");
                 int stationCol   = Col("Station");
 
                 if (wireNbCol == -1 || epnCol == -1)
@@ -232,6 +244,8 @@ namespace DynamicWiApi.Controllers
                     wires.Add(new WireData
                     {
                         WireNumber = wireNb,
+                        Twist      = GetText(twistCol),
+                        Core       = GetText(coreCol),
                         Csa        = GetDouble(csaCol),
                         Length     = GetDouble(lengthCol),
                         C1         = GetText(c1Col),
@@ -239,8 +253,8 @@ namespace DynamicWiApi.Controllers
                         Loc        = GetText(locCol),
                         Node       = GetText(nodeCol),
                         Epn        = GetText(epnCol),
-                        TotalCav   = GetInt(totalCavCol),
                         Cavity     = GetText(cavityCol),
+                        Splice     = GetText(spliceCol),
                         Module     = GetText(moduleCol),
                         Station    = GetText(stationCol),
                     });

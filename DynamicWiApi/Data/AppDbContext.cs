@@ -14,11 +14,15 @@ public class AppDbContext : DbContext
     public DbSet<Composite> Composites => Set<Composite>();
     public DbSet<ModuleList> ModuleLists => Set<ModuleList>();
     public DbSet<ModuleListEntry> ModuleListEntries => Set<ModuleListEntry>();
-    public DbSet<WireData> WireDatas => Set<WireData>();
 
     public DbSet<Epn> Epns => Set<Epn>();
     public DbSet<EpnPhoto> EpnPhotos => Set<EpnPhoto>();
     public DbSet<EpnCavity> EpnCavities => Set<EpnCavity>();
+
+    // Replaces the old flat WireData table.
+    public DbSet<Node> Nodes => Set<Node>();
+    public DbSet<Wire> Wires => Set<Wire>();
+    public DbSet<WireEnd> WireEnds => Set<WireEnd>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -63,5 +67,38 @@ public class AppDbContext : DbContext
             .WithOne(e => e.ModuleList)
             .HasForeignKey(e => e.ModuleListId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        // ── Node / Wire / WireEnd ────────────────────────────────────────
+
+        modelBuilder.Entity<Node>()
+            .HasIndex(n => n.Name)
+            .IsUnique();
+
+        modelBuilder.Entity<Node>()
+            .HasOne(n => n.Epn)
+            .WithMany(e => e.Nodes)
+            .HasForeignKey(n => n.EpnId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<Wire>()
+            .HasIndex(w => w.WireNumber);
+
+        modelBuilder.Entity<Wire>()
+            .HasIndex(w => w.SpliceCode);
+
+        modelBuilder.Entity<WireEnd>()
+            .HasOne(we => we.Wire)
+            .WithMany(w => w.Ends)
+            .HasForeignKey(we => we.WireId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<WireEnd>()
+            .HasOne(we => we.Node)
+            .WithMany(n => n.Ends)
+            .HasForeignKey(we => we.NodeId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<WireEnd>()
+            .HasIndex(we => new { we.NodeId, we.Cavity });
     }
 }
