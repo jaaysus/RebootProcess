@@ -72,16 +72,17 @@
   }
 
   /* GRID - matching component-grid */
-  .epns-grid {
-    columns: 250px;
-    column-gap: 10px;
-  }
+.epns-grid {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 10px;
+}
 
   /* CARD - matching component-card */
   .epns-card {
-    display: inline-block;
-    width: 100%;
-    break-inside: avoid;
+    display: block;
+    width: 250px;
     border: 1px solid #ddd;
     border-radius: 10px;
     overflow: hidden;
