@@ -10,8 +10,6 @@ public class Epn
 
     public int CavityCount { get; set; }
 
-    public int? PhotoId { get; set; }
-
     public EpnPhoto? Photo { get; set; }
 
     public ICollection<EpnCavity> Cavities { get; set; }

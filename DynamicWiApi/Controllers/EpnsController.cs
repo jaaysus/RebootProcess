@@ -77,7 +77,6 @@ public class EpnController : ControllerBase
         {
             EpnCode           = req.Epn.Trim(),
             CavityCount       = req.CavityCount,
-            PhotoId           = photo?.Id,
             NeedsCoordination = !hasCavities,
             Cavities          = hasCavities
                 ? BuildCavities(req.Cavities)
@@ -108,10 +107,10 @@ public class EpnController : ControllerBase
         if (codeChanged && await _db.Epns.AnyAsync(e => e.EpnCode == req.Epn && e.Id != id))
             return Conflict($"EPN code '{req.Epn}' is already used by another record.");
 
-        if (codeChanged || epn.PhotoId is null)
+        if (codeChanged || epn.Photo is null)
         {
             var photo = await FindPhotoByEpnCode(req.Epn);
-            epn.PhotoId = photo?.Id;
+            epn.Photo = photo;
         }
 
         bool hasCavities = req.Cavities is { Count: > 0 };
@@ -187,7 +186,7 @@ public class EpnController : ControllerBase
         if (photo is null)
             return NotFound($"No uploaded photo found matching EPN code '{epn.EpnCode}'.");
 
-        epn.PhotoId = photo.Id;
+        epn.Photo = photo;
         await _db.SaveChangesAsync();
 
         return Ok(new
@@ -223,25 +222,13 @@ public class EpnController : ControllerBase
     // ════════════════════════════════════════════════════════════════════════
 
     /// <summary>
-    /// Finds the most recently uploaded EpnPhoto whose stored file name
-    /// (without extension) matches the EPN code exactly (case-insensitive).
-    /// Example: EPN code "EPN-042" matches file "epn-photos/EPN-042.jpg".
+    /// Finds the EpnPhoto with matching EpnCode.
     /// </summary>
     private async Task<EpnPhoto?> FindPhotoByEpnCode(string epnCode)
     {
-        var code = epnCode.Trim().ToLower();
-
-        // Pull candidates into memory so we can use Path.GetFileNameWithoutExtension
-        var candidates = await _db.EpnPhotos
-            .Where(p => p.FilePath.ToLower().Contains(code))
-            .OrderByDescending(p => p.UploadedAt)
-            .ToListAsync();
-
-        return candidates.FirstOrDefault(p =>
-            string.Equals(
-                Path.GetFileNameWithoutExtension(p.FilePath),
-                code,
-                StringComparison.OrdinalIgnoreCase));
+        var code = epnCode.Trim();
+        return await _db.EpnPhotos
+            .FirstOrDefaultAsync(p => p.EpnCode == code);
     }
 
     private static List<EpnCavity> BuildCavities(

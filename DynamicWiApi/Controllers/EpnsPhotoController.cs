@@ -31,6 +31,7 @@ public class EpnPhotoController : ControllerBase
             .Select(p => new
             {
                 p.Id,
+                Epn = p.EpnCode,
                 p.FilePath,
                 p.PhotoWidth,
                 p.PhotoHeight,
@@ -55,6 +56,7 @@ public class EpnPhotoController : ControllerBase
         return Ok(new
         {
             photo.Id,
+            Epn = photo.EpnCode,
             photo.FilePath,
             photo.PhotoWidth,
             photo.PhotoHeight,
@@ -78,6 +80,7 @@ public class EpnPhotoController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = result.Photo!.Id }, new
         {
             result.Photo.Id,
+            Epn = result.Photo.EpnCode,
             result.Photo.FilePath,
             result.Photo.PhotoWidth,
             result.Photo.PhotoHeight,
@@ -118,6 +121,7 @@ public class EpnPhotoController : ControllerBase
             succeeded.Add(new
             {
                 result.Photo!.Id,
+                Epn = result.Photo.EpnCode,
                 result.Photo.FilePath,
                 result.Photo.PhotoWidth,
                 result.Photo.PhotoHeight,
@@ -160,8 +164,6 @@ public class EpnPhotoController : ControllerBase
         return NoContent();
     }
 
-
-
     // ════════════════════════════════════════════════════════════════════════
     //  Private helpers
     // ════════════════════════════════════════════════════════════════════════
@@ -202,6 +204,7 @@ public class EpnPhotoController : ControllerBase
 
         var photo = new EpnPhoto
         {
+            EpnCode     = Path.GetFileNameWithoutExtension(fileName),
             FilePath    = $"/{PhotoSubfolder}/{fileName}",
             PhotoWidth  = width,
             PhotoHeight = height,

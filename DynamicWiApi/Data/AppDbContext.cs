@@ -40,6 +40,10 @@ public class AppDbContext : DbContext
             .HasIndex(e => e.EpnCode)
             .IsUnique();
 
+        modelBuilder.Entity<EpnPhoto>()
+            .HasIndex(p => p.EpnCode)
+            .IsUnique();
+
         modelBuilder.Entity<Epn>()
             .HasMany(e => e.Cavities)
             .WithOne()
@@ -49,8 +53,9 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Epn>()
             .HasOne(e => e.Photo)
             .WithMany(p => p.Epns)
-            .HasForeignKey(e => e.PhotoId)
-            .OnDelete(DeleteBehavior.SetNull);
+            .HasForeignKey(e => e.EpnCode)
+            .HasPrincipalKey(p => p.EpnCode)
+            .OnDelete(DeleteBehavior.Restrict);
 
         modelBuilder.Entity<Composite>()
             .HasIndex(c => c.CompositeCode)

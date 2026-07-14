@@ -4,6 +4,7 @@ using DynamicWiApi.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DynamicWi.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260714110647_AddEpnToPhotoModel")]
+    partial class AddEpnToPhotoModel
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -102,10 +105,15 @@ namespace DynamicWi.Migrations
                     b.Property<bool>("NeedsCoordination")
                         .HasColumnType("bit");
 
+                    b.Property<int?>("PhotoId")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
                     b.HasIndex("EpnCode")
                         .IsUnique();
+
+                    b.HasIndex("PhotoId");
 
                     b.ToTable("Epns");
                 });
@@ -152,10 +160,6 @@ namespace DynamicWi.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("EpnCode")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
                     b.Property<string>("FilePath")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -170,9 +174,6 @@ namespace DynamicWi.Migrations
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("EpnCode")
-                        .IsUnique();
 
                     b.ToTable("EpnPhotos");
                 });
@@ -429,10 +430,8 @@ namespace DynamicWi.Migrations
                 {
                     b.HasOne("DynamicWiApi.Models.EpnPhoto", "Photo")
                         .WithMany("Epns")
-                        .HasForeignKey("EpnCode")
-                        .HasPrincipalKey("EpnCode")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .HasForeignKey("PhotoId")
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Photo");
                 });
