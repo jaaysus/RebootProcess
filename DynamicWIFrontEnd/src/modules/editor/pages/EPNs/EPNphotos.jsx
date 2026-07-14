@@ -59,6 +59,31 @@ function DeleteModal({ onConfirm, onCancel }) {
   );
 }
 
+// ─── DeleteSelectedModal ──────────────────────────────────────────────────────
+
+function DeleteSelectedModal({ count, onConfirm, onCancel }) {
+  return (
+    <div className="component-modal-overlay">
+      <div className="component-modal-box">
+        <button className="component-modal-close" onClick={onCancel}>
+          <X size={16} />
+        </button>
+        <div className="component-modal-icon">
+          <Trash2 size={28} color="#d9534f" />
+        </div>
+        <h3 className="component-modal-title">Delete Selected Photos</h3>
+        <p className="component-modal-text">
+          Are you sure you want to delete <strong>{count}</strong> photo{count !== 1 ? "s" : ""}? This action cannot be undone.
+        </p>
+        <div className="component-modal-actions">
+          <button className="component-modal-cancel" onClick={onCancel}>Cancel</button>
+          <button className="component-modal-confirm" onClick={onConfirm}>Delete {count}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── UploadPreviewModal ──────────────────────────────────────────────────────
 
 /**
@@ -245,6 +270,8 @@ export default function EPNphotos() {
   const [fileStatuses, setFileStatuses] = useState({});       // { [filename]: status }
   const [viewMode, setViewMode]         = useState("grid");
   const [searchQuery, setSearchQuery]   = useState("");
+  const [selectedPhotos, setSelectedPhotos] = useState(new Set());  // Set of photo IDs
+  const [deleteSelectedId, setDeleteSelectedId] = useState(null);   // For delete confirmation
 
   useEffect(() => { dispatch(fetchPhotos()); }, [dispatch]);
 
@@ -338,6 +365,36 @@ export default function EPNphotos() {
     if (deleteId) { dispatch(deletePhoto(deleteId)); setDeleteId(null); }
   };
 
+  // ── selection handlers ─────────────────────────────────────────────────────
+  const togglePhotoSelection = (photoId) => {
+    setSelectedPhotos(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(photoId)) {
+        newSet.delete(photoId);
+      } else {
+        newSet.add(photoId);
+      }
+      return newSet;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedPhotos.size === filteredPhotos.length) {
+      setSelectedPhotos(new Set());
+    } else {
+      setSelectedPhotos(new Set(filteredPhotos.map(p => p.id)));
+    }
+  };
+
+  const confirmDeleteSelected = () => {
+    if (deleteSelectedId !== "confirm") return;
+    selectedPhotos.forEach(photoId => {
+      dispatch(deletePhoto(photoId));
+    });
+    setSelectedPhotos(new Set());
+    setDeleteSelectedId(null);
+  };
+
   const getDisplayName = (filePath) => {
     if (!filePath) return "";
     return filePath.split("/").pop()
@@ -355,6 +412,14 @@ export default function EPNphotos() {
     <div>
       {deleteId && (
         <DeleteModal onConfirm={confirmDelete} onCancel={() => setDeleteId(null)} />
+      )}
+
+      {deleteSelectedId && (
+        <DeleteSelectedModal 
+          count={selectedPhotos.size}
+          onConfirm={confirmDeleteSelected}
+          onCancel={() => setDeleteSelectedId(null)}
+        />
       )}
 
       {pendingFiles && (
@@ -432,9 +497,20 @@ export default function EPNphotos() {
                   />
                 </div>
               )}
+
+              {viewMode === "table" && selectedPhotos.size > 0 && (
+                <button
+                  onClick={() => setDeleteSelectedId("confirm")}
+                  className="btn btn-danger d-flex align-items-center gap-2"
+                  title={`Delete ${selectedPhotos.size} selected photo${selectedPhotos.size !== 1 ? "s" : ""}`}
+                >
+                  <Trash2 size={14} />
+                  Delete Selected ({selectedPhotos.size})
+                </button>
+              )}
             </div>
 
-            <div style={{ display: "flex" }}>
+            <div className="d-flex">
               <input
                 ref={fileInputRef}
                 type="file"
@@ -444,7 +520,7 @@ export default function EPNphotos() {
                 style={{ display: "none" }}
               />
               <button
-                className="component-upload-btn"
+                className="btn btn-danger d-flex align-items-center gap-2"
                 onClick={() => fileInputRef.current.click()}
                 disabled={loading || !!pendingFiles}
               >
@@ -483,6 +559,15 @@ export default function EPNphotos() {
               <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
                 <thead>
                   <tr style={{ background: "#f9f9f9", borderBottom: "1px solid #ddd" }}>
+                    <th style={{ padding: "12px 16px", fontWeight: "600", color: "#444", width: "40px", textAlign: "center" }}>
+                      <input
+                        type="checkbox"
+                        checked={selectedPhotos.size === filteredPhotos.length && filteredPhotos.length > 0}
+                        onChange={toggleSelectAll}
+                        style={{ cursor: "pointer" }}
+                        title={selectedPhotos.size === filteredPhotos.length && filteredPhotos.length > 0 ? "Deselect all" : "Select all"}
+                      />
+                    </th>
                     <th style={{ padding: "12px 16px", fontWeight: "600", color: "#444" }}>Preview</th>
                     <th style={{ padding: "12px 16px", fontWeight: "600", color: "#444" }}>File Name</th>
                     <th style={{ padding: "12px 16px", fontWeight: "600", color: "#444" }}>Dimensions</th>
@@ -492,6 +577,14 @@ export default function EPNphotos() {
                 <tbody>
                   {filteredPhotos.map((photo) => (
                     <tr key={photo.id} style={{ borderBottom: "1px solid #eee" }}>
+                      <td style={{ padding: "12px 16px", width: "40px", textAlign: "center" }}>
+                        <input
+                          type="checkbox"
+                          checked={selectedPhotos.has(photo.id)}
+                          onChange={() => togglePhotoSelection(photo.id)}
+                          style={{ cursor: "pointer" }}
+                        />
+                      </td>
                       <td style={{ padding: "12px 16px", width: "100px" }}>
                         <img
                           src={photoUrl(photo.filePath)}
@@ -519,7 +612,7 @@ export default function EPNphotos() {
                   ))}
                   {filteredPhotos.length === 0 && (
                     <tr>
-                      <td colSpan="4" style={{ padding: "24px", textAlign: "center", color: "#888" }}>
+                      <td colSpan="5" style={{ padding: "24px", textAlign: "center", color: "#888" }}>
                         No photos found matching "{searchQuery}"
                       </td>
                     </tr>
