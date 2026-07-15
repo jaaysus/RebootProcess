@@ -51,7 +51,7 @@ public class EpnPhotoController : ControllerBase
             .FirstOrDefaultAsync(p => p.Id == id);
 
         if (photo is null)
-            return NotFound($"Photo {id} not found.");
+            return NotFound(new { message = $"Photo {id} not found." });
 
         return Ok(new
         {
@@ -75,7 +75,7 @@ public class EpnPhotoController : ControllerBase
     {
         var result = await SavePhoto(file, photoWidth, photoHeight);
         if (result.Error is not null)
-            return BadRequest(result.Error);
+            return BadRequest(new { message = result.Error });
 
         return CreatedAtAction(nameof(GetById), new { id = result.Photo!.Id }, new
         {
@@ -100,10 +100,10 @@ public class EpnPhotoController : ControllerBase
         [FromForm] List<int> heights)
     {
         if (files is null || files.Count == 0)
-            return BadRequest("No files provided.");
+            return BadRequest(new { message = "No files provided." });
 
         if (widths.Count != files.Count || heights.Count != files.Count)
-            return BadRequest("widths and heights must have the same count as files.");
+            return BadRequest(new { message = "widths and heights must have the same count as files." });
 
         var succeeded = new List<object>();
         var failed    = new List<object>();
@@ -114,7 +114,7 @@ public class EpnPhotoController : ControllerBase
 
             if (result.Error is not null)
             {
-                failed.Add(new { FileName = files[i].FileName, Reason = result.Error });
+                failed.Add(new { FileName = files[i].FileName, Reason = new { message = result.Error } });
                 continue;
             }
 
@@ -146,12 +146,12 @@ public class EpnPhotoController : ControllerBase
             .FirstOrDefaultAsync(p => p.Id == id);
 
         if (photo is null)
-            return NotFound($"Photo {id} not found.");
+            return NotFound(new { message = $"Photo {id} not found." });
 
         if (photo.Epns.Any())
-            return Conflict(
+            return Conflict(new { message =
                 $"Photo is still referenced by {photo.Epns.Count} EPN(s): " +
-                string.Join(", ", photo.Epns.Select(e => e.EpnCode)));
+                string.Join(", ", photo.Epns.Select(e => e.EpnCode)) });
 
         var fileName = Path.GetFileName(photo.FilePath);
         var fullPath = Path.Combine(GetPhotosDirectory(), fileName);

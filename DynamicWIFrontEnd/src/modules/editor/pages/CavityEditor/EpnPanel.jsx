@@ -79,6 +79,16 @@ export function EpnPanel({
             placeholder="Epn"
           />
         </label>
+        <label className="epn-form__field">
+          <span>Cavity Count</span>
+          <input
+            type="number"
+            value={epnInfo.cavityCount || ''}
+            disabled={!canEditGeometry}
+            onChange={(e) => setEpnInfo((current) => ({ ...current, cavityCount: e.target.value }))}
+            placeholder="Cavity Count"
+          />
+        </label>
       </div>
 
       <div className="cavity-table-wrap">

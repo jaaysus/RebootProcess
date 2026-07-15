@@ -12,7 +12,10 @@ export const fetchEpns = createAsyncThunk('epns/fetchAll', async (_, { rejectWit
     const res = await api.get('/epn')
     return res.data
   } catch (err) {
-    return rejectWithValue(err.response?.data?.message || err.message)
+    const errorMessage = typeof err.response?.data === 'string'
+      ? err.response.data
+      : err.response?.data?.message || err.message
+    return rejectWithValue(errorMessage)
   }
 })
 
@@ -21,7 +24,10 @@ export const fetchEpnById = createAsyncThunk('epns/fetchById', async (id, { reje
     const res = await api.get(`/epn/${id}`)
     return res.data
   } catch (err) {
-    return rejectWithValue(err.response?.data?.message || err.message)
+    const errorMessage = typeof err.response?.data === 'string'
+      ? err.response.data
+      : err.response?.data?.message || err.message
+    return rejectWithValue(errorMessage)
   }
 })
 
@@ -31,7 +37,10 @@ export const createEpn = createAsyncThunk('epns/create', async (body, { rejectWi
     const res = await api.post('/epn', body)
     return res.data
   } catch (err) {
-    return rejectWithValue(err.response?.data?.message || err.message)
+    const errorMessage = typeof err.response?.data === 'string'
+      ? err.response.data
+      : err.response?.data?.message || err.message
+    return rejectWithValue(errorMessage)
   }
 })
 
@@ -41,7 +50,10 @@ export const updateEpn = createAsyncThunk('epns/update', async ({ id, body }, { 
     const res = await api.put(`/epn/${id}`, body)
     return res.data
   } catch (err) {
-    return rejectWithValue(err.response?.data?.message || err.message)
+    const errorMessage = typeof err.response?.data === 'string'
+      ? err.response.data
+      : err.response?.data?.message || err.message
+    return rejectWithValue(errorMessage)
   }
 })
 
@@ -50,7 +62,10 @@ export const deleteEpn = createAsyncThunk('epns/delete', async (id, { rejectWith
     await api.delete(`/epn/${id}`)
     return id
   } catch (err) {
-    return rejectWithValue(err.response?.data?.message || err.message)
+    const errorMessage = typeof err.response?.data === 'string'
+      ? err.response.data
+      : err.response?.data?.message || err.message
+    return rejectWithValue(errorMessage)
   }
 })
 
@@ -60,7 +75,10 @@ export const setCavities = createAsyncThunk('epns/setCavities', async ({ id, cav
     const res = await api.patch(`/epn/${id}/cavities`, cavities)
     return res.data
   } catch (err) {
-    return rejectWithValue(err.response?.data?.message || err.message)
+    const errorMessage = typeof err.response?.data === 'string'
+      ? err.response.data
+      : err.response?.data?.message || err.message
+    return rejectWithValue(errorMessage)
   }
 })
 
@@ -69,7 +87,10 @@ export const matchPhoto = createAsyncThunk('epns/matchPhoto', async (id, { rejec
     const res = await api.patch(`/epn/${id}/match-photo`)
     return res.data
   } catch (err) {
-    return rejectWithValue(err.response?.data?.message || err.message)
+    const errorMessage = typeof err.response?.data === 'string'
+      ? err.response.data
+      : err.response?.data?.message || err.message
+    return rejectWithValue(errorMessage)
   }
 })
 
@@ -82,7 +103,10 @@ export const fetchPhotos = createAsyncThunk('epns/fetchPhotos', async (_, { reje
     const res = await api.get('/epnphoto')
     return res.data
   } catch (err) {
-    return rejectWithValue(err.response?.data?.message || err.message)
+    const errorMessage = typeof err.response?.data === 'string'
+      ? err.response.data
+      : err.response?.data?.message || err.message
+    return rejectWithValue(errorMessage)
   }
 })
 
@@ -107,7 +131,10 @@ export const uploadPhotoBulk = createAsyncThunk('epns/uploadPhotoBulk', async (f
     const res = await api.post('/epnphoto/upload-bulk', fd)
     return res.data // { succeeded: [], failed: [] }
   } catch (err) {
-    return rejectWithValue(err.response?.data?.message || err.message)
+    const errorMessage = typeof err.response?.data === 'string'
+      ? err.response.data
+      : err.response?.data?.message || err.message
+    return rejectWithValue(errorMessage)
   }
 })
 
@@ -116,7 +143,10 @@ export const deletePhoto = createAsyncThunk('epns/deletePhoto', async (id, { rej
     await api.delete(`/epnphoto/${id}`)
     return id
   } catch (err) {
-    return rejectWithValue(err.response?.data?.message || err.message)
+    const errorMessage = typeof err.response?.data === 'string'
+      ? err.response.data
+      : err.response?.data?.message || err.message
+    return rejectWithValue(errorMessage)
   }
 })
 
