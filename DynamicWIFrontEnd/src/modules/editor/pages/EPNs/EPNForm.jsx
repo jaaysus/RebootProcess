@@ -66,7 +66,7 @@ function EPNImportPreviewModal({
             <FileSpreadsheet size={18} />
             <span>Import Preview</span>
           </div>
-          <button className="component-modal-close upv-close" onClick={onCancel} disabled={uploading && !isDone}>
+          <button className="component-modal-close upv-close" onClick={onCancel} disabled={false}>
             <X size={16} />
           </button>
         </div>
@@ -141,7 +141,7 @@ function EPNImportPreviewModal({
             </button>
           ) : (
             <>
-              <button className="component-modal-cancel" onClick={onCancel} disabled={uploading}>
+              <button className="component-modal-cancel" onClick={onCancel} disabled={false}>
                 Cancel
               </button>
               <button
@@ -180,10 +180,13 @@ export default function EPNForm({
   const [isParsing, setIsParsing] = useState(false)
   const fileInputRef = useRef(null)
 
-  const [pendingRows, setPendingRows] = useState(null) // array | null
+  const [pendingRows, setPendingRows] = useState(null)
   const [rowStatuses, setRowStatuses] = useState({})
   const [uploading, setUploading] = useState(false)
   const [progress, setProgress] = useState({ done: 0, total: 0 })
+  
+  // Add cancellation flag
+  const isCancelledRef = useRef(false)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -251,6 +254,9 @@ export default function EPNForm({
     const toImport = pendingRows.filter(r => r.valid && !r.duplicate)
     if (toImport.length === 0) return
 
+    // Reset cancellation flag
+    isCancelledRef.current = false
+
     onImportStart?.()
     setUploading(true)
     setProgress({ done: 0, total: toImport.length })
@@ -267,6 +273,11 @@ export default function EPNForm({
     let failCount = 0
 
     for (const row of toImport) {
+      // Check if cancelled
+      if (isCancelledRef.current) {
+        break
+      }
+
       setRowStatuses(prev => ({ ...prev, [row.id]: 'uploading' }))
 
       const success = await onImportRow({ epn: row.epn, cavityCount: row.cavityCount })
@@ -279,15 +290,15 @@ export default function EPNForm({
     }
 
     onImportComplete?.(successCount, failCount)
+    setUploading(false)
   }
 
   const handleCancelModal = () => {
-    if (!uploading) {
-      setPendingRows(null)
-      setRowStatuses({})
-    } else {
-      setPendingRows(null)
-    }
+    // Signal cancellation
+    isCancelledRef.current = true
+    
+    setPendingRows(null)
+    setRowStatuses({})
     setUploading(false)
     setProgress({ done: 0, total: 0 })
   }
@@ -336,6 +347,9 @@ export default function EPNForm({
             onChange={handleFileChange}
           />
         </div>
+        {(error || localError) && (
+          <div className="epns-error">{error || localError}</div>
+        )}
       </form>
 
       {pendingRows && (

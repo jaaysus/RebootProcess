@@ -73,6 +73,18 @@ export const matchPhoto = createAsyncThunk('epns/matchPhoto', async (id, { rejec
   }
 })
 
+export const importEpnsFromExcel = createAsyncThunk('epns/importFromExcel', async (file, { rejectWithValue }) => {
+  try {
+    const fd = new FormData()
+    fd.append('file', file)
+
+    const res = await api.post('/epn/import', fd)
+    return res.data // { totalRows, created, skipped, errors, rows: [{ row, epn, status, message }] }
+  } catch (err) {
+    return rejectWithValue(err.response?.data?.message || err.message)
+  }
+})
+
 // ════════════════════════════════════════════════════════════════════════════
 //  Thunks — EPN Photos
 // ════════════════════════════════════════════════════════════════════════════
@@ -132,6 +144,7 @@ const epnsSlice = createSlice({
     loading: false,
     photosLoading: false,
     error: null,
+    importResult: null,
   },
   reducers: {
     clearError(state) { state.error = null },
@@ -183,6 +196,13 @@ const epnsSlice = createSlice({
         if (idx !== -1) state.items[idx] = { ...state.items[idx], ...payload }
       })
 
+      // ── importEpnsFromExcel ────────────────────────────────────────────────
+      .addCase(importEpnsFromExcel.pending,   state => { state.loading = true;  state.error = null })
+      .addCase(importEpnsFromExcel.rejected,  (state, { payload }) => { state.loading = false; state.error = payload })
+      .addCase(importEpnsFromExcel.fulfilled, (state, { payload }) => {
+        state.loading = false
+        state.importResult = payload // { totalRows, created, skipped, errors, rows }
+      })
       // ── fetchPhotos ────────────────────────────────────────────────────────
       .addCase(fetchPhotos.pending,   state => { state.photosLoading = true;  state.error = null })
       .addCase(fetchPhotos.rejected,  (state, { payload }) => { state.photosLoading = false; state.error = payload })
@@ -220,4 +240,5 @@ export const selectEpnsLoading   = s => s.epns.loading
 export const selectEpnsError     = s => s.epns.error
 export const selectPhotos        = s => s.epns.photos
 export const selectPhotosLoading = s => s.epns.photosLoading
+export const selectEpnImportResult = s => s.epns.importResult
 export const photoUrl = filePath => filePath ? `${BASE_URL}${filePath}` : null
