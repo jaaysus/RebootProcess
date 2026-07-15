@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using DynamicWiApi.Data;
 using DynamicWiApi.Models;
 //using DynamicWiApi.DTOs;   // CavityDto, CreateEpnRequest, UpdateEpnRequest
+using ClosedXML.Excel;
 
 namespace DynamicWiApi.Controllers;
 
@@ -262,4 +263,105 @@ public class EpnController : ControllerBase
                     c => new { c.X, c.Y, c.Size, c.Shape }
                 )
     };
+
+
+    // ── POST api/epn/import ──────────────────────────────────────────────────
+    // Bulk-imports EPNs from an Excel file with columns "EPN" and "CavityCount".
+    // Duplicate EPN codes (case-insensitive) are skipped automatically.
+    [HttpPost("import")]
+    public async Task<IActionResult> ImportFromExcel(IFormFile file)
+    {
+        if (file is null || file.Length == 0)
+            return BadRequest("No file uploaded.");
+
+        using var stream = new MemoryStream();
+        await file.CopyToAsync(stream);
+        stream.Position = 0;
+
+        using var workbook = new XLWorkbook(stream); // now lives for the whole method
+        IXLWorksheet worksheet;
+        try
+        {
+            worksheet = workbook.Worksheet(1);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest($"Could not read Excel file: {ex.Message}");
+        }
+
+
+        // Locate "EPN" and "CavityCount" columns from the header row
+        var headerRow = worksheet.Row(1);
+        int epnCol = -1, cavityCol = -1;
+        foreach (var cell in headerRow.CellsUsed())
+        {
+            var header = cell.GetString().Trim();
+            if (header.Equals("EPN", StringComparison.OrdinalIgnoreCase))
+                epnCol = cell.Address.ColumnNumber;
+            else if (header.Equals("CavityCount", StringComparison.OrdinalIgnoreCase))
+                cavityCol = cell.Address.ColumnNumber;
+        }
+
+        if (epnCol == -1 || cavityCol == -1)
+            return BadRequest("Excel file must contain 'EPN' and 'CavityCount' columns.");
+
+        var existingCodes = new HashSet<string>(
+            await _db.Epns.Select(e => e.EpnCode).ToListAsync(),
+            StringComparer.OrdinalIgnoreCase);
+
+        var results = new List<object>();
+        var newEpns = new List<Epn>();
+
+        var lastRow = worksheet.LastRowUsed()?.RowNumber() ?? 1;
+
+        for (int row = 2; row <= lastRow; row++)
+        {
+            var epnCode = worksheet.Cell(row, epnCol).GetString().Trim();
+
+            if (string.IsNullOrWhiteSpace(epnCode))
+                continue; // skip blank rows silently
+
+            var cavityRaw = worksheet.Cell(row, cavityCol).GetString().Trim();
+            if (!int.TryParse(cavityRaw, out int cavityCount))
+            {
+                results.Add(new { Row = row, Epn = epnCode, Status = "error", Message = "Invalid or missing CavityCount." });
+                continue;
+            }
+
+            if (existingCodes.Contains(epnCode))
+            {
+                results.Add(new { Row = row, Epn = epnCode, Status = "skipped", Message = "Duplicate EPN." });
+                continue;
+            }
+
+            var epn = new Epn
+            {
+                EpnCode = epnCode,
+                CavityCount = cavityCount,
+                NeedsCoordination = true // no cavity coordinates come from the import
+            };
+
+            newEpns.Add(epn);
+            existingCodes.Add(epnCode); // guard against duplicates within the same file
+            results.Add(new { Row = row, Epn = epnCode, Status = "created", Message = (string?)null });
+        }
+
+        if (newEpns.Count > 0)
+        {
+            foreach (var epn in newEpns)
+                epn.Photo = await FindPhotoByEpnCode(epn.EpnCode);
+
+            _db.Epns.AddRange(newEpns);
+            await _db.SaveChangesAsync();
+        }
+
+        return Ok(new
+        {
+            TotalRows = results.Count,
+            Created = newEpns.Count,
+            Skipped = results.Count(r => ((dynamic)r).Status == "skipped"),
+            Errors  = results.Count(r => ((dynamic)r).Status == "error"),
+            Rows = results
+        });
+    }
 }
