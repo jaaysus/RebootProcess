@@ -100,6 +100,7 @@ export function useCavityEditor({
     name: '',
     epn: preloadEpn || '',
     connector: preloadConnector || '',
+    cavityCount: preloadCavityCount || '',
   })
   const [numberingMode, setNumberingMode] = useState('automatic')
   const [numberingOrder, setNumberingOrder] = useState('ltr-down')
@@ -189,8 +190,9 @@ export function useCavityEditor({
       ...info,
       epn: preloadEpn || '',
       connector: preloadConnector || '',
+      cavityCount: preloadCavityCount || '',
     }))
-  }, [preloadImage, preloadEpn, preloadConnector, editorMode])
+  }, [preloadImage, preloadEpn, preloadConnector, preloadCavityCount, editorMode])
 
   useEffect(() => {
     if (!preloadCoordinates || typeof preloadCoordinates !== 'object') return

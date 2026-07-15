@@ -227,6 +227,10 @@ public class WireController : ControllerBase
 
             return Ok(new { WireCount = wires.Count, EndCount = wires.Sum(w => w.Ends.Count) });
         }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
         catch (Exception ex)
         {
             return StatusCode(500, $"Internal server error: {ex.Message}");

@@ -37,7 +37,7 @@ public class EpnController : ControllerBase
             .FirstOrDefaultAsync(e => e.Id == id);
 
         if (epn is null)
-            return NotFound($"EPN {id} not found.");
+            return NotFound(new { message = $"EPN {id} not found." });
 
         return Ok(MapToResponse(epn));
     }
@@ -52,25 +52,28 @@ public class EpnController : ControllerBase
             .FirstOrDefaultAsync(e => e.EpnCode == code);
 
         if (epn is null)
-            return NotFound($"EPN '{code}' not found.");
+            return NotFound(new { message = $"EPN '{code}' not found." });
 
         return Ok(MapToResponse(epn));
     }
 
     // ── POST api/epn ─────────────────────────────────────────────────────────
-    // • Photo is resolved by matching an already-uploaded EpnPhoto whose
-    //   file name (without extension) equals the EPN code.
+    // • Photo is required and is resolved by matching an already-uploaded EpnPhoto
+    //   whose file name (without extension) equals the EPN code.
     // • Cavities are optional — if empty, NeedsCoordination = true.
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateEpnRequest req)
     {
         if (string.IsNullOrWhiteSpace(req.Epn))
-            return BadRequest("EPN code is required.");
+            return BadRequest(new { message = "EPN code is required." });
 
         if (await _db.Epns.AnyAsync(e => e.EpnCode == req.Epn))
-            return Conflict($"EPN '{req.Epn}' already exists.");
+            return Conflict(new { message = $"EPN '{req.Epn}' already exists." });
 
         var photo = await FindPhotoByEpnCode(req.Epn);
+
+        if (photo is null)
+            return BadRequest(new { message = $"No photo found for EPN code '{req.Epn}'. Please upload the photo first." });
 
         bool hasCavities = req.Cavities is { Count: > 0 };
 
@@ -79,6 +82,7 @@ public class EpnController : ControllerBase
             EpnCode           = req.Epn.Trim(),
             CavityCount       = req.CavityCount,
             NeedsCoordination = !hasCavities,
+            Photo             = photo,
             Cavities          = hasCavities
                 ? BuildCavities(req.Cavities)
                 : new List<EpnCavity>()
@@ -87,12 +91,11 @@ public class EpnController : ControllerBase
         _db.Epns.Add(epn);
         await _db.SaveChangesAsync();
 
-        await _db.Entry(epn).Reference(e => e.Photo).LoadAsync();
-
         return CreatedAtAction(nameof(GetById), new { id = epn.Id }, MapToResponse(epn));
     }
 
     // ── PUT api/epn/{id} ─────────────────────────────────────────────────────
+    // • Photo is required - must exist in EpnPhotos table
     [HttpPut("{id:int}")]
     public async Task<IActionResult> Update(int id, [FromBody] UpdateEpnRequest req)
     {
@@ -101,23 +104,25 @@ public class EpnController : ControllerBase
             .FirstOrDefaultAsync(e => e.Id == id);
 
         if (epn is null)
-            return NotFound($"EPN {id} not found.");
+            return NotFound(new { message = $"EPN {id} not found." });
 
         bool codeChanged = !string.Equals(epn.EpnCode, req.Epn, StringComparison.OrdinalIgnoreCase);
 
         if (codeChanged && await _db.Epns.AnyAsync(e => e.EpnCode == req.Epn && e.Id != id))
-            return Conflict($"EPN code '{req.Epn}' is already used by another record.");
+            return Conflict(new { message = $"EPN code '{req.Epn}' is already used by another record." });
 
         if (codeChanged || epn.Photo is null)
         {
             var photo = await FindPhotoByEpnCode(req.Epn);
+            if (photo is null)
+                return BadRequest(new { message = $"No photo found for EPN code '{req.Epn}'. Please upload the photo first." });
             epn.Photo = photo;
         }
 
         bool hasCavities = req.Cavities is { Count: > 0 };
 
         if (hasCavities && req.Cavities.Count != req.CavityCount)
-            return BadRequest($"Expected {req.CavityCount} cavities, got {req.Cavities.Count}.");
+            return BadRequest(new { message = $"Expected {req.CavityCount} cavities, got {req.Cavities.Count}." });
 
         _db.EpnCavities.RemoveRange(epn.Cavities);
 
@@ -130,8 +135,6 @@ public class EpnController : ControllerBase
 
         await _db.SaveChangesAsync();
 
-        await _db.Entry(epn).Reference(e => e.Photo).LoadAsync();
-
         return Ok(MapToResponse(epn));
     }
     // ── PATCH api/epn/{id}/cavities ──────────────────────────────────────────
@@ -143,17 +146,17 @@ public class EpnController : ControllerBase
         [FromBody] Dictionary<int, CavityDto> cavities)
     {
         if (cavities is null || cavities.Count == 0)
-            return BadRequest("Provide at least one cavity.");
+            return BadRequest(new { message = "Provide at least one cavity." });
 
         var epn = await _db.Epns
             .Include(e => e.Cavities)
             .FirstOrDefaultAsync(e => e.Id == id);
 
         if (epn is null)
-            return NotFound($"EPN {id} not found.");
+            return NotFound(new { message = $"EPN {id} not found." });
 
         if (cavities.Count != epn.CavityCount)
-            return BadRequest($"Expected {epn.CavityCount} cavities, got {cavities.Count}.");
+            return BadRequest(new { message = $"Expected {epn.CavityCount} cavities, got {cavities.Count}." });
 
         _db.EpnCavities.RemoveRange(epn.Cavities);
 
@@ -176,16 +179,17 @@ public class EpnController : ControllerBase
     // ── PATCH api/epn/{id}/match-photo ───────────────────────────────────────
     // Manually trigger photo re-matching for a specific EPN
     // (useful if the photo was uploaded after the EPN was created)
+    // Photo is required - must exist in EpnPhotos table
     [HttpPatch("{id:int}/match-photo")]
     public async Task<IActionResult> MatchPhoto(int id)
     {
         var epn = await _db.Epns.FindAsync(id);
         if (epn is null)
-            return NotFound($"EPN {id} not found.");
+            return NotFound(new { message = $"EPN {id} not found." });
 
         var photo = await FindPhotoByEpnCode(epn.EpnCode);
         if (photo is null)
-            return NotFound($"No uploaded photo found matching EPN code '{epn.EpnCode}'.");
+            return BadRequest(new { message = $"No photo found for EPN code '{epn.EpnCode}'. Please upload the photo first." });
 
         epn.Photo = photo;
         await _db.SaveChangesAsync();
@@ -210,7 +214,7 @@ public class EpnController : ControllerBase
     {
         var epn = await _db.Epns.FindAsync(id);
         if (epn is null)
-            return NotFound($"EPN {id} not found.");
+            return NotFound(new { message = $"EPN {id} not found." });
 
         _db.Epns.Remove(epn); // cascade deletes EpnCavities
         await _db.SaveChangesAsync();

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useRef, useState, useCallback, useEffect } from "react";
 import { Upload, Trash2, X, AlertTriangle, CheckCircle, ImagePlus, XCircle, LayoutGrid, List, Search } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -36,7 +36,7 @@ function fmtSize(bytes) {
 
 // ─── DeleteModal ──────────────────────────────────────────────────────────────
 
-function DeleteModal({ onConfirm, onCancel }) {
+function DeleteModal({ onConfirm, onCancel, error }) {
   return (
     <div className="component-modal-overlay">
       <div className="component-modal-box">
@@ -47,12 +47,12 @@ function DeleteModal({ onConfirm, onCancel }) {
           <Trash2 size={28} color="#d9534f" />
         </div>
         <h3 className="component-modal-title">Delete Photo</h3>
-        <p className="component-modal-text">
-          Are you sure you want to delete this photo? This action cannot be undone.
+        <p className="component-modal-text" style={{ color: error ? "#d9534f" : "" }}>
+          {error || "Are you sure you want to delete this photo? This action cannot be undone."}
         </p>
         <div className="component-modal-actions">
           <button className="component-modal-cancel" onClick={onCancel}>Cancel</button>
-          <button className="component-modal-confirm" onClick={onConfirm}>Delete</button>
+          <button className="component-modal-confirm" onClick={onConfirm} disabled={!!error}>Delete</button>
         </div>
       </div>
     </div>
@@ -263,6 +263,7 @@ export default function EPNphotos() {
   const loading = useSelector(selectPhotosLoading);
 
   const [deleteId,     setDeleteId]     = useState(null);
+  const [deleteError,  setDeleteError]  = useState(null);
   const [pendingFiles, setPendingFiles] = useState(null);     // File[] | null
   const [overwrite,    setOverwrite]    = useState(false);
   const [uploading,    setUploading]    = useState(false);
@@ -362,8 +363,24 @@ export default function EPNphotos() {
 
   // ── delete ─────────────────────────────────────────────────────────────────
   const confirmDelete = () => {
-    if (deleteId) { dispatch(deletePhoto(deleteId)); setDeleteId(null); }
+    if (deleteId) {
+      dispatch(deletePhoto(deleteId)).then((result) => {
+        if (deletePhoto.rejected.match(result)) {
+          setDeleteError(result.payload);
+        } else {
+          setDeleteId(null);
+          setDeleteError(null);
+        }
+      });
+    }
   };
+
+  // ── clear error when opening delete modal ─────────────────────────────────
+  useEffect(() => {
+    if (deleteId) {
+      setDeleteError(null);
+    }
+  }, [deleteId]);
 
   // ── selection handlers ─────────────────────────────────────────────────────
   const togglePhotoSelection = (photoId) => {
@@ -411,7 +428,11 @@ export default function EPNphotos() {
   return (
     <div>
       {deleteId && (
-        <DeleteModal onConfirm={confirmDelete} onCancel={() => setDeleteId(null)} />
+        <DeleteModal
+          onConfirm={confirmDelete}
+          onCancel={() => { setDeleteId(null); setDeleteError(null); }}
+          error={deleteError}
+        />
       )}
 
       {deleteSelectedId && (

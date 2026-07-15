@@ -34,15 +34,30 @@ public class HarnessImportService
 
     public async Task<List<Wire>> ImportAsync(List<ParsedWireRow> rows)
     {
+        // Load existing data for validation before wiping
+        var epnCache = await _db.Epns.ToDictionaryAsync(e => e.EpnCode, e => e);
+        var nodeCache = await _db.Nodes.ToDictionaryAsync(n => n.Name, n => n);
+
+        // TODO: Make this check optional in the future if you want to allow auto-creation of EPNs
+        // Validate that all EPN codes in the spreadsheet exist in the database
+        var missingEpns = rows
+            .Select(r => r.EpnCode)
+            .Distinct()
+            .Where(code => !string.IsNullOrEmpty(code) && !epnCache.ContainsKey(code))
+            .ToList();
+
+        if (missingEpns.Any())
+        {
+            throw new InvalidOperationException(
+                $"Some Node EPNs still do not exist in database, upload them first. Missing: {string.Join(", ", missingEpns)}");
+        }
+
         // Wipe existing harness data for this dataset (mirrors the old
         // "overwrite all" behavior — swap for a HarnessId scope if you
         // want versioned imports instead).
         _db.WireEnds.RemoveRange(_db.WireEnds);
         _db.Wires.RemoveRange(_db.Wires);
         await _db.SaveChangesAsync();
-
-        var epnCache = await _db.Epns.ToDictionaryAsync(e => e.EpnCode, e => e);
-        var nodeCache = await _db.Nodes.ToDictionaryAsync(n => n.Name, n => n);
 
         var wires = new List<Wire>();
 
@@ -94,20 +109,8 @@ public class HarnessImportService
         if (nodeCache.TryGetValue(nodeName, out var existing))
             return existing;
 
-        if (!epnCache.TryGetValue(epnCode, out var epn))
-        {
-            // No EPN row yet (photo/cavity layout hasn't been coordinated) —
-            // create a placeholder, same convention EpnsController already
-            // uses via NeedsCoordination.
-            epn = new Epn
-            {
-                EpnCode = epnCode,
-                CavityCount = 0,
-                NeedsCoordination = true,
-            };
-            _db.Epns.Add(epn);
-            epnCache[epnCode] = epn;
-        }
+        // EPN should exist in cache due to validation step above
+        var epn = epnCache[epnCode];
 
         var node = new Node
         {
