@@ -313,8 +313,17 @@ public class EpnController : ControllerBase
             await _db.Epns.Select(e => e.EpnCode).ToListAsync(),
             StringComparer.OrdinalIgnoreCase);
 
+        // Load all photo codes once (fast)
+        var photoCodes = new HashSet<string>(
+            await _db.EpnPhotos.Select(p => p.EpnCode).ToListAsync(),
+            StringComparer.OrdinalIgnoreCase);
+
         var results = new List<object>();
-        var newEpns = new List<Epn>();
+        var validEpns = new List<Epn>();
+
+        int created = 0;
+        int skipped = 0;
+        int errors = 0;
 
         var lastRow = worksheet.LastRowUsed()?.RowNumber() ?? 1;
 
@@ -322,49 +331,87 @@ public class EpnController : ControllerBase
         {
             var epnCode = worksheet.Cell(row, epnCol).GetString().Trim();
 
+            // Remove accidental leading comma
+            epnCode = epnCode.TrimStart(',');
+
             if (string.IsNullOrWhiteSpace(epnCode))
-                continue; // skip blank rows silently
+                continue;
 
             var cavityRaw = worksheet.Cell(row, cavityCol).GetString().Trim();
+
             if (!int.TryParse(cavityRaw, out int cavityCount))
             {
-                results.Add(new { Row = row, Epn = epnCode, Status = "error", Message = "Invalid or missing CavityCount." });
+                errors++;
+                results.Add(new
+                {
+                    Row = row,
+                    Epn = epnCode,
+                    Status = "error",
+                    Message = "Invalid or missing CavityCount."
+                });
                 continue;
             }
 
+            // Already exists in Epns table
             if (existingCodes.Contains(epnCode))
             {
-                results.Add(new { Row = row, Epn = epnCode, Status = "skipped", Message = "Duplicate EPN." });
+                skipped++;
+                results.Add(new
+                {
+                    Row = row,
+                    Epn = epnCode,
+                    Status = "skipped",
+                    Message = "Exists"
+                });
                 continue;
             }
 
-            var epn = new Epn
+            // NEW: check photo existence BEFORE inserting
+            if (!photoCodes.Contains(epnCode))
+            {
+                errors++;
+                results.Add(new
+                {
+                    Row = row,
+                    Epn = epnCode,
+                    Status = "error",
+                    Message = "Photo not found."
+                });
+                continue;
+            }
+
+            validEpns.Add(new Epn
             {
                 EpnCode = epnCode,
                 CavityCount = cavityCount,
-                NeedsCoordination = true // no cavity coordinates come from the import
-            };
+                NeedsCoordination = true
+            });
 
-            newEpns.Add(epn);
-            existingCodes.Add(epnCode); // guard against duplicates within the same file
-            results.Add(new { Row = row, Epn = epnCode, Status = "created", Message = (string?)null });
+            existingCodes.Add(epnCode); // prevent duplicates within same file
+
+            created++;
+            results.Add(new
+            {
+                Row = row,
+                Epn = epnCode,
+                Status = "created",
+                Message = (string?)null
+            });
         }
 
-        if (newEpns.Count > 0)
+        // Save ONLY the valid rows
+        if (validEpns.Count > 0)
         {
-            foreach (var epn in newEpns)
-                epn.Photo = await FindPhotoByEpnCode(epn.EpnCode);
-
-            _db.Epns.AddRange(newEpns);
+            _db.Epns.AddRange(validEpns);
             await _db.SaveChangesAsync();
         }
 
         return Ok(new
         {
             TotalRows = results.Count,
-            Created = newEpns.Count,
-            Skipped = results.Count(r => ((dynamic)r).Status == "skipped"),
-            Errors  = results.Count(r => ((dynamic)r).Status == "error"),
+            Created = created,
+            Skipped = skipped,
+            Errors = errors,
             Rows = results
         });
     }

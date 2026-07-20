@@ -4,6 +4,7 @@ import {
   fetchEpns, 
   createEpn, 
   deleteEpn, 
+  importEpnsFromExcel,
   selectEpns, 
   selectEpnsLoading, 
   selectEpnsError, 
@@ -67,6 +68,7 @@ export default function EPNs({ onCoordinateCavities }) {
     if (sliceError) setError(sliceError)
   }, [sliceError])
 
+  // Single-add only — this is now the ONLY place createEpn is dispatched.
   const handleAdd = async (formData) => {
     setError('')
     setSuccessMessage('')
@@ -80,24 +82,28 @@ export default function EPNs({ onCoordinateCavities }) {
     return createEpn.fulfilled.match(result)
   }
 
-  // Called once, right before the import loop starts
+  // Called once, right before the import request is sent
   const handleImportStart = () => {
     setError('')
     setSuccessMessage('')
     dispatch(clearError())
   }
 
-  // Called for each row in the import preview modal, one at a time
-  const handleImportRow = async ({ epn, cavityCount }) => {
-    const result = await dispatch(createEpn({
-      epn,
-      cavityCount,
-    }))
-    return createEpn.fulfilled.match(result)
+  // Batch import — sends the whole file once to the backend, which parses,
+  // dedups and creates rows itself (server-side, via /epn/import).
+  const handleImportFile = async (file) => {
+    const result = await dispatch(importEpnsFromExcel(file))
+    if (importEpnsFromExcel.fulfilled.match(result)) {
+      return result.payload // { totalRows, created, skipped, errors, rows }
+    }
+    return null
   }
 
-  // Called once the full import loop finishes
+  // Called once the import request finishes (success or failure)
   const handleImportComplete = (successCount, failCount) => {
+    // Refresh the list so newly created EPNs (and their auto-matched photos) show up
+    dispatch(fetchEpns())
+
     if (failCount === 0) {
       setSuccessMessage(`Successfully imported ${successCount} EPN${successCount !== 1 ? 's' : ''}`)
       setTimeout(() => setSuccessMessage(''), 3000)
@@ -160,7 +166,7 @@ export default function EPNs({ onCoordinateCavities }) {
             loading={loading} 
             error={error} 
             successMessage={successMessage}
-            onImportRow={handleImportRow}
+            onImportFile={handleImportFile}
             onImportStart={handleImportStart}
             onImportComplete={handleImportComplete}
             existingEpns={epns.map(e => e.epn)}

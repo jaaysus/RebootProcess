@@ -28,32 +28,69 @@ function EPNImportPreviewModal({
   const duplicateRows = validRows.filter(r => r.duplicate)
   const newRows       = validRows.filter(r => !r.duplicate)
   const toImport      = newRows
-  const isDone        = uploading && progress.done === progress.total && progress.total > 0
+  const isDone        = uploading === false && progress.total > 0 && progress.done === progress.total
 
-  const succeededCount = Object.values(rowStatuses).filter(s => s === 'done').length
-  const failedCount    = Object.values(rowStatuses).filter(s => s === 'failed').length
+  const succeededCount = Object.values(rowStatuses).filter(s => s?.status === 'done').length
+  const failedCount    = Object.values(rowStatuses).filter(s => s?.status === 'failed').length
 
   const statusIcon = (row) => {
     const st = rowStatuses[row.id]
-    if (st === 'uploading') return <span className="upv-row-spinner" />
-    if (st === 'done')      return <CheckCircle size={14} color="#16a34a" />
-    if (st === 'failed')    return <XCircle size={14} color="#d9534f" />
-    if (st === 'skipped')   return <span className="upv-row-skip-icon">—</span>
-    // idle
-    if (!row.valid)    return <AlertTriangle size={14} color="#d9534f" />
-    if (row.duplicate) return <AlertTriangle size={14} color="#e6a817" />
-    return <CheckCircle size={14} color="#16a34a" />
+    if (!st) {
+      // idle state
+      if (!row.valid)    return <AlertTriangle size={14} color="#d9534f" />
+      if (row.duplicate) return <AlertTriangle size={14} color="#e6a817" />
+      return <CheckCircle size={14} color="#16a34a" />
+    }
+    
+    if (st.status === 'uploading') return <span className="upv-row-spinner" />
+    if (st.status === 'done')      return <CheckCircle size={14} color="#16a34a" />
+    if (st.status === 'failed')    return <XCircle size={14} color="#d9534f" />
+    if (st.status === 'skipped')   return <span className="upv-row-skip-icon">—</span>
+    return <AlertTriangle size={14} color="#d9534f" />
   }
 
   const rowClass = (row) => {
     const st = rowStatuses[row.id]
-    if (st === 'uploading') return 'upv-row upv-row--uploading'
-    if (st === 'done')      return 'upv-row upv-row--done'
-    if (st === 'failed')    return 'upv-row upv-row--failed'
-    if (st === 'skipped')   return 'upv-row upv-row--skipped'
-    if (!row.valid)    return 'upv-row upv-row--failed'
-    if (row.duplicate) return 'upv-row upv-row--dup'
+    if (!st) {
+      if (!row.valid)    return 'upv-row upv-row--failed'
+      if (row.duplicate) return 'upv-row upv-row--dup'
+      return 'upv-row'
+    }
+    
+    if (st.status === 'uploading') return 'upv-row upv-row--uploading'
+    if (st.status === 'done')      return 'upv-row upv-row--done'
+    if (st.status === 'failed')    return 'upv-row upv-row--failed'
+    if (st.status === 'skipped')   return 'upv-row upv-row--skipped'
     return 'upv-row'
+  }
+
+  const getStatusText = (row) => {
+    const st = rowStatuses[row.id]
+    if (!st) {
+      if (row.duplicate) return 'exists'
+      if (!row.valid) return 'invalid'
+      return ''
+    }
+    
+    if (st.status === 'failed') return st.message || 'failed'
+    if (st.status === 'skipped') return st.message || 'skipped'
+    if (st.status === 'done') return 'imported'
+    if (st.status === 'uploading') return 'uploading...'
+    return ''
+  }
+
+  const getTagClass = (row) => {
+    const st = rowStatuses[row.id]
+    if (!st) {
+      if (row.duplicate) return 'upv-row-tag'
+      if (!row.valid) return 'upv-row-tag upv-row-tag--fail'
+      return ''
+    }
+    
+    if (st.status === 'failed') return 'upv-row-tag upv-row-tag--fail'
+    if (st.status === 'skipped') return 'upv-row-tag upv-row-tag--skip'
+    if (st.status === 'done') return 'upv-row-tag upv-row-tag--success'
+    return ''
   }
 
   return (
@@ -89,48 +126,44 @@ function EPNImportPreviewModal({
           <span className="upv-badge upv-badge--total">{rows.length} total</span>
         </div>
 
-        {/* ── Progress bar (shown while uploading) ── */}
-        {uploading && progress.total > 0 && (
+        {/* ── Progress bar (shown while uploading / once result is back) ── */}
+        {(uploading || (progress.total > 0 && isDone)) && (
           <div className="upv-progress-wrap">
             <div className="upv-progress-track">
               <div
                 className="upv-progress-fill"
-                style={{ width: `${Math.round((progress.done / progress.total) * 100)}%` }}
+                style={{ width: `${uploading ? 100 : Math.round((progress.done / progress.total) * 100)}%` }}
               />
             </div>
             <span className="upv-progress-label">
               {isDone
                 ? `Done — ${succeededCount} imported${failedCount ? `, ${failedCount} failed` : ''}`
-                : `Importing ${progress.done} / ${progress.total}…`}
+                : `Importing ${toImport.length} EPN${toImport.length !== 1 ? 's' : ''}…`}
             </span>
           </div>
         )}
 
         {/* ── Row list ── */}
         <ul className="upv-list">
-          {rows.map((row) => (
-            <li key={row.id} className={rowClass(row)}>
-              <span className="upv-row-icon">{statusIcon(row)}</span>
-              <span className="upv-row-name" title={row.epn || 'Missing EPN'}>
-                {row.epn || <em>Missing EPN</em>}
-              </span>
-              <span className="upv-row-size">
-                {row.valid ? `${row.cavityCount} cavities` : '-'}
-              </span>
-              {row.duplicate && rowStatuses[row.id] === undefined && (
-                <span className="upv-row-tag">exists</span>
-              )}
-              {!row.valid && rowStatuses[row.id] === undefined && (
-                <span className="upv-row-tag upv-row-tag--fail">invalid</span>
-              )}
-              {rowStatuses[row.id] === 'skipped' && (
-                <span className="upv-row-tag upv-row-tag--skip">skipped</span>
-              )}
-              {rowStatuses[row.id] === 'failed' && (
-                <span className="upv-row-tag upv-row-tag--fail">failed</span>
-              )}
-            </li>
-          ))}
+          {rows.map((row) => {
+            const statusText = getStatusText(row)
+            const tagClass = getTagClass(row)
+            
+            return (
+              <li key={row.id} className={rowClass(row)}>
+                <span className="upv-row-icon">{statusIcon(row)}</span>
+                <span className="upv-row-name" title={row.epn || 'Missing EPN'}>
+                  {row.epn || <em>Missing EPN</em>}
+                </span>
+                <span className="upv-row-size">
+                  {row.valid ? `${row.cavityCount} cavities` : '-'}
+                </span>
+                {statusText && (
+                  <span className={tagClass}>{statusText}</span>
+                )}
+              </li>
+            )
+          })}
         </ul>
 
         {/* ── Actions ── */}
@@ -170,10 +203,10 @@ export default function EPNForm({
   loading,
   error,
   successMessage,
-  onImportRow,      // async ({ epn, cavityCount }) => boolean
-  onImportStart,    // () => void, called once before the import loop begins
-  onImportComplete, // (successCount, failCount) => void
-  existingEpns = [], // array of existing EPN strings, for duplicate detection
+  onImportFile,     // async (file) => ({ totalRows, created, skipped, errors, rows }) | null on failure
+  onImportStart,     // () => void, called once before the import request is sent
+  onImportComplete,  // (successCount, failCount) => void
+  existingEpns = [], // array of existing EPN strings, for duplicate preview only
 }) {
   const [form, setForm] = useState({ epn: '', cavityCount: '' })
   const [localError, setLocalError] = useState('')
@@ -181,12 +214,10 @@ export default function EPNForm({
   const fileInputRef = useRef(null)
 
   const [pendingRows, setPendingRows] = useState(null)
+  const [pendingFile, setPendingFile] = useState(null) // the raw File, sent to the backend as-is
   const [rowStatuses, setRowStatuses] = useState({})
   const [uploading, setUploading] = useState(false)
   const [progress, setProgress] = useState({ done: 0, total: 0 })
-  
-  // Add cancellation flag
-  const isCancelledRef = useRef(false)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -197,6 +228,7 @@ export default function EPNForm({
       return
     }
 
+    // Single add still goes through createEpn (via onSubmit -> handleAdd)
     const success = await onSubmit(form)
     if (success) {
       setForm({ epn: '', cavityCount: '' })
@@ -224,10 +256,13 @@ export default function EPNForm({
 
         const existingLower = new Set(existingEpns.map(n => n.toLowerCase()))
 
+        // This parse is ONLY for the preview list (counts / duplicate hints).
+        // The actual import sends the original file to the backend, which
+        // re-parses and creates rows itself.
         const parsedRows = rawRows.map((row, i) => {
           const { epn, cavityCount } = extractEpnFields(row)
           return {
-            id: i,
+            id: i, // matches (backend Row number - 2), since data starts at Excel row 2
             epn,
             cavityCount,
             valid: !!epn,
@@ -236,6 +271,7 @@ export default function EPNForm({
         })
 
         setPendingRows(parsedRows)
+        setPendingFile(file)
         setRowStatuses({})
       } catch (err) {
         console.error('Import failed', err)
@@ -250,54 +286,71 @@ export default function EPNForm({
   }
 
   const handleProceed = async () => {
-    if (!pendingRows) return
-    const toImport = pendingRows.filter(r => r.valid && !r.duplicate)
-    if (toImport.length === 0) return
-
-    // Reset cancellation flag
-    isCancelledRef.current = false
+    if (!pendingFile || !pendingRows) return
 
     onImportStart?.()
     setUploading(true)
-    setProgress({ done: 0, total: toImport.length })
+    setProgress({ done: 0, total: pendingRows.filter(r => r.valid && !r.duplicate).length })
 
+    // Mark invalid rows as skipped right away for a responsive UI
     const initialStatuses = {}
     pendingRows.forEach(r => {
-      if (!(r.valid && !r.duplicate)) {
-        initialStatuses[r.id] = 'skipped'
-      }
+      if (!r.valid) initialStatuses[r.id] = { status: 'skipped', message: 'Invalid row' }
     })
     setRowStatuses(initialStatuses)
 
-    let successCount = 0
-    let failCount = 0
+    const result = await onImportFile(pendingFile)
 
-    for (const row of toImport) {
-      // Check if cancelled
-      if (isCancelledRef.current) {
-        break
-      }
+    if (result) {
+      // Map backend row results (1-based Excel row, header = row 1) back onto
+      // our preview rows (0-based id, since sheet_to_json starts at row 2).
+      const statusByRowId = {}
+      result.rows.forEach(r => {
+        statusByRowId[r.row - 2] = { 
+          status: r.status, 
+          message: r.message || null 
+        }
+      })
 
-      setRowStatuses(prev => ({ ...prev, [row.id]: 'uploading' }))
+      const finalStatuses = {}
+      pendingRows.forEach(r => {
+        if (!r.valid) {
+          finalStatuses[r.id] = { status: 'skipped', message: 'Invalid row' }
+          return
+        }
+        const st = statusByRowId[r.id]
+        if (st) {
+          if (st.status === 'created') finalStatuses[r.id] = { status: 'done', message: null }
+          else if (st.status === 'skipped') finalStatuses[r.id] = { status: 'skipped', message: st.message }
+          else if (st.status === 'error') finalStatuses[r.id] = { status: 'failed', message: st.message }
+          else finalStatuses[r.id] = { status: 'skipped', message: 'Unknown status' }
+        } else {
+          finalStatuses[r.id] = { status: 'skipped', message: 'Not processed' }
+        }
+      })
 
-      const success = await onImportRow({ epn: row.epn, cavityCount: row.cavityCount })
-
-      setRowStatuses(prev => ({ ...prev, [row.id]: success ? 'done' : 'failed' }))
-      setProgress(prev => ({ ...prev, done: prev.done + 1 }))
-
-      if (success) successCount++
-      else failCount++
+      setRowStatuses(finalStatuses)
+      setProgress({ done: result.totalRows, total: result.totalRows })
+      onImportComplete?.(result.created, result.errors)
+    } else {
+      // Request itself failed (network/server error) — mark everything failed
+      const finalStatuses = {}
+      pendingRows.forEach(r => {
+        finalStatuses[r.id] = { 
+          status: r.valid ? 'failed' : 'skipped',
+          message: r.valid ? 'Import failed' : 'Invalid row'
+        }
+      })
+      setRowStatuses(finalStatuses)
+      onImportComplete?.(0, pendingRows.filter(r => r.valid).length)
     }
 
-    onImportComplete?.(successCount, failCount)
     setUploading(false)
   }
 
   const handleCancelModal = () => {
-    // Signal cancellation
-    isCancelledRef.current = true
-    
     setPendingRows(null)
+    setPendingFile(null)
     setRowStatuses({})
     setUploading(false)
     setProgress({ done: 0, total: 0 })
