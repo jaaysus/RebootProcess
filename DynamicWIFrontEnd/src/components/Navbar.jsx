@@ -92,8 +92,8 @@ export default function AppNavbar() {
                 </span>
               </li>
               <li className="nav-item">
-                <span className="nav-link" style={{ cursor: 'pointer' }} onClick={() => navigate('/work-instructions')} title="Work Instructions">
-                  <span className="nav-text">Work Instructions</span>
+                <span className="nav-link" style={{ cursor: 'pointer' }} onClick={() => navigate('/wire-data')} title="Global Harness Data">
+                  <span className="nav-text">Global Harness Data</span>
                   <FaFileAlt className="nav-icon" aria-hidden="true" />
                 </span>
               </li>

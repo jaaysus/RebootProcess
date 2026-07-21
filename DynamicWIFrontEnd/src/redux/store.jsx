@@ -15,4 +15,11 @@ export const store = configureStore({
     moduleLists: moduleListsReducer,
     wireData: wireDataReducer,
   },
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware({
+      serializableCheck: {
+        ignoredActions: ['wireData/fetchAll/fulfilled'],
+        ignoredStatePaths: ['wireData.items', 'wireData.pagination'],
+      },
+    }),
 });

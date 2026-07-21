@@ -102,7 +102,10 @@ export const importEpnsFromExcel = createAsyncThunk('epns/importFromExcel', asyn
     const res = await api.post('/epn/import', fd)
     return res.data // { totalRows, created, skipped, errors, rows: [{ row, epn, status, message }] }
   } catch (err) {
-    return rejectWithValue(err.response?.data?.message || err.message)
+    const errorMessage = typeof err.response?.data === 'string'
+      ? err.response.data
+      : err.response?.data?.message || err.message
+    return rejectWithValue(errorMessage)
   }
 })
 

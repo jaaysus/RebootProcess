@@ -24,37 +24,89 @@ public class WireController : ControllerBase
 
     private static object MapEnd(WireEnd e) => new
     {
-        e.Id,
-        Node = e.Node.Name,
-        e.Cavity,
-        e.Location,
-        e.Station,
-        e.IsSpliceCavity
+        id = e.Id,
+        node = e.Node.Name,
+        cavity = e.Cavity,
+        location = e.Location,
+        station = e.Station,
+        isSpliceCavity = e.IsSpliceCavity
     };
 
     private static object MapWire(Wire w) => new
     {
-        w.Id,
-        w.WireNumber,
-        w.Csa,
-        w.Length,
-        w.Core,
-        w.ColorC1,
-        w.ColorC2,
-        w.Module,
-        w.SpliceCode,
-        Ends = w.Ends.Select(MapEnd)
+        id = w.Id,
+        wireNumber = w.WireNumber,
+        csa = w.Csa,
+        length = w.Length,
+        core = w.Core,
+        colorC1 = w.ColorC1,
+        colorC2 = w.ColorC2,
+        module = w.Module,
+        spliceCode = w.SpliceCode,
+        ends = w.Ends.Select(MapEnd)
     };
 
     [HttpGet]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll(
+        [FromQuery] int? page = null, 
+        [FromQuery] int? pageSize = null,
+        [FromQuery] string? wireNumber = null,
+        [FromQuery] string? core = null,
+        [FromQuery] string? module = null,
+        [FromQuery] string? spliceCode = null,
+        [FromQuery] string? station = null,
+        [FromQuery] string? end1Node = null,
+        [FromQuery] string? end2Node = null)
     {
-        var wires = await _db.Wires
+        var query = _db.Wires
             .Include(w => w.Ends).ThenInclude(e => e.Node)
-            .OrderBy(w => w.WireNumber)
-            .ToListAsync();
+            .AsQueryable();
 
-        return Ok(wires.Select(MapWire));
+        if (!string.IsNullOrWhiteSpace(wireNumber))
+            query = query.Where(w => w.WireNumber != null && w.WireNumber.Contains(wireNumber));
+
+        if (!string.IsNullOrWhiteSpace(core))
+            query = query.Where(w => w.Core != null && w.Core.Contains(core));
+
+        if (!string.IsNullOrWhiteSpace(module))
+            query = query.Where(w => w.Module != null && w.Module.Contains(module));
+
+        if (!string.IsNullOrWhiteSpace(spliceCode))
+            query = query.Where(w => w.SpliceCode != null && w.SpliceCode.Contains(spliceCode));
+
+        if (!string.IsNullOrWhiteSpace(station))
+            query = query.Where(w => w.Ends.Any(e => e.Station != null && e.Station.Contains(station)));
+
+        if (!string.IsNullOrWhiteSpace(end1Node))
+            query = query.Where(w => w.Ends.Any(e => e.Node.Name.Contains(end1Node)));
+
+        if (!string.IsNullOrWhiteSpace(end2Node))
+            query = query.Where(w => w.Ends.Any(e => e.Node.Name.Contains(end2Node)));
+
+        query = query.OrderBy(w => w.WireNumber);
+
+        if (page.HasValue && pageSize.HasValue)
+        {
+            var totalCount = await query.CountAsync();
+            var wires = await query
+                .Skip((page.Value - 1) * pageSize.Value)
+                .Take(pageSize.Value)
+                .ToListAsync();
+
+            return Ok(new
+            {
+                data = wires.Select(MapWire),
+                totalCount = totalCount,
+                page = page.Value,
+                pageSize = pageSize.Value,
+                totalPages = (int)Math.Ceiling((double)totalCount / pageSize.Value)
+            });
+        }
+        else
+        {
+            var wires = await query.ToListAsync();
+            return Ok(new { data = wires.Select(MapWire) });
+        }
     }
 
     [HttpGet("{id:int}")]
@@ -65,7 +117,7 @@ public class WireController : ControllerBase
             .FirstOrDefaultAsync(w => w.Id == id);
 
         if (wire is null) return NotFound($"Wire {id} not found.");
-        return Ok(MapWire(wire));
+        return Ok(new { data = MapWire(wire) });
     }
 
     /// <summary>
@@ -82,7 +134,7 @@ public class WireController : ControllerBase
             .ToListAsync();
 
         if (!wires.Any()) return NotFound($"No wire found with number '{wireNumber}'.");
-        return Ok(wires.Select(MapWire));
+        return Ok(new { data = wires.Select(MapWire) });
     }
 
     /// <summary>Every wire end sharing this wire's splice code — the n-way junction it sits at.</summary>
@@ -96,7 +148,7 @@ public class WireController : ControllerBase
             return Ok(new { spliceCode = (string?)null, ends = Array.Empty<object>() });
 
         var ends = await _graph.GetSpliceGroupAsync(wire.SpliceCode);
-        return Ok(new { spliceCode = wire.SpliceCode, ends = ends.Select(MapEnd) });
+        return Ok(new { data = new { spliceCode = wire.SpliceCode, ends = ends.Select(MapEnd) } });
     }
 
     /// <summary>
@@ -112,15 +164,15 @@ public class WireController : ControllerBase
 
         var reachable = await _graph.ResolveReachableAsync(wireEndId);
 
-        return Ok(reachable.Select(r => new
+        return Ok(new { data = reachable.Select(r => new
         {
-            WireEndId = r.End.Id,
-            Node = r.End.Node.Name,
-            Cavity = r.End.Cavity,
-            Station = r.End.Station,
-            WireNumber = r.End.Wire.WireNumber,
-            ViaSplice = r.ViaSplice
-        }));
+            wireEndId = r.End.Id,
+            node = r.End.Node.Name,
+            cavity = r.End.Cavity,
+            station = r.End.Station,
+            wireNumber = r.End.Wire.WireNumber,
+            viaSplice = r.ViaSplice
+        }) });
     }
 
     [HttpDelete]

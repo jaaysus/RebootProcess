@@ -5,9 +5,9 @@ import { api } from '../api'
 //  Thunks — Wire Data
 // ════════════════════════════════════════════════════════════════════════════
 
-export const fetchWireData = createAsyncThunk('wireData/fetchAll', async (_, { rejectWithValue }) => {
+export const fetchWireData = createAsyncThunk('wireData/fetchAll', async ({ page = 1, pageSize = 50, filters = {} } = {}, { rejectWithValue }) => {
   try {
-    const res = await api.get('/wiredata')
+    const res = await api.get('/wire', { params: { page, pageSize, ...filters } })
     return res.data
   } catch (err) {
     return rejectWithValue(err.response?.data?.message || err.response?.data || err.message)
@@ -16,7 +16,7 @@ export const fetchWireData = createAsyncThunk('wireData/fetchAll', async (_, { r
 
 export const fetchWireDataById = createAsyncThunk('wireData/fetchById', async (id, { rejectWithValue }) => {
   try {
-    const res = await api.get(`/wiredata/${id}`)
+    const res = await api.get(`/wire/${id}`)
     return res.data
   } catch (err) {
     return rejectWithValue(err.response?.data?.message || err.response?.data || err.message)
@@ -74,7 +74,7 @@ export const updateWireData = createAsyncThunk('wireData/update', async ({ id, b
 
 export const deleteWireData = createAsyncThunk('wireData/delete', async (id, { rejectWithValue }) => {
   try {
-    await api.delete(`/wiredata/${id}`)
+    await api.delete(`/wire/${id}`)
     return id
   } catch (err) {
     return rejectWithValue(err.response?.data?.message || err.response?.data || err.message)
@@ -83,7 +83,7 @@ export const deleteWireData = createAsyncThunk('wireData/delete', async (id, { r
 
 export const deleteAllWireData = createAsyncThunk('wireData/deleteAll', async (_, { rejectWithValue }) => {
   try {
-    await api.delete('/wiredata')
+    await api.delete('/wire')
     return true
   } catch (err) {
     return rejectWithValue(err.response?.data?.message || err.response?.data || err.message)
@@ -94,7 +94,7 @@ export const uploadWireData = createAsyncThunk('wireData/upload', async (file, {
   try {
     const fd = new FormData()
     fd.append('file', file)
-    const res = await api.post('/wiredata/upload', fd, {
+    const res = await api.post('/wire/upload', fd, {
       headers: { 'Content-Type': 'multipart/form-data' },
     })
     return res.data
@@ -126,9 +126,15 @@ const wireDataSlice = createSlice({
     nodeLoading: false,
     error: null,
     nodeError: null,
+    pagination: {
+      totalCount: 0,
+      page: 1,
+      pageSize: 50,
+      totalPages: 0,
+    },
   },
   reducers: {
-    clearError(state) { state.error = null },
+    clearWireError(state) { state.error = null },
     clearNodeError(state) { state.nodeError = null },
     clearNodeResult(state) { state.nodeResult = null },
   },
@@ -137,7 +143,21 @@ const wireDataSlice = createSlice({
       // ── fetchWireData ───────────────────────────────────────────────────────
       .addCase(fetchWireData.pending,   state => { state.loading = true;  state.error = null })
       .addCase(fetchWireData.rejected,  (state, { payload }) => { state.loading = false; state.error = payload })
-      .addCase(fetchWireData.fulfilled, (state, { payload }) => { state.loading = false; state.items = payload })
+      .addCase(fetchWireData.fulfilled, (state, { payload }) => {
+        state.loading = false
+        if (payload && payload.data) {
+          state.items = Array.isArray(payload.data) ? payload.data : []
+          state.pagination = {
+            totalCount: payload.totalCount || 0,
+            page: payload.page || 1,
+            pageSize: payload.pageSize || 50,
+            totalPages: payload.totalPages || 0,
+          }
+        } else {
+          // Fallback for non-paginated response
+          state.items = Array.isArray(payload) ? payload : []
+        }
+      })
 
       // ── createWireData ──────────────────────────────────────────────────────
       .addCase(createWireData.pending,   state => { state.loading = true;  state.error = null })
@@ -164,14 +184,30 @@ const wireDataSlice = createSlice({
       // ── deleteAllWireData ───────────────────────────────────────────────────
       .addCase(deleteAllWireData.pending,   state => { state.loading = true;  state.error = null })
       .addCase(deleteAllWireData.rejected,  (state, { payload }) => { state.loading = false; state.error = payload })
-      .addCase(deleteAllWireData.fulfilled, (state) => { state.loading = false; state.items = [] })
+      .addCase(deleteAllWireData.fulfilled, (state) => {
+        state.loading = false
+        state.items = []
+        state.pagination = {
+          totalCount: 0,
+          page: 1,
+          pageSize: 50,
+          totalPages: 0,
+        }
+      })
 
       // ── uploadWireData ─────────────────────────────────────────────────────
       .addCase(uploadWireData.pending,   state => { state.uploading = true;  state.error = null })
       .addCase(uploadWireData.rejected,  (state, { payload }) => { state.uploading = false; state.error = payload })
-      .addCase(uploadWireData.fulfilled, (state, { payload }) => {
+      .addCase(uploadWireData.fulfilled, (state) => {
         state.uploading = false
-        state.items = payload
+        state.error = null
+        state.pagination = {
+          totalCount: 0,
+          page: 1,
+          pageSize: 50,
+          totalPages: 0,
+        }
+        // Data will be refetched after upload
       })
 
       // ── fetchNodeLookup ─────────────────────────────────────────────────────
@@ -181,7 +217,7 @@ const wireDataSlice = createSlice({
   },
 })
 
-export const { clearError, clearNodeError, clearNodeResult } = wireDataSlice.actions
+export const { clearWireError, clearNodeError, clearNodeResult } = wireDataSlice.actions
 export default wireDataSlice.reducer
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -192,6 +228,7 @@ export const selectWireData         = s => s.wireData.items
 export const selectWireDataLoading  = s => s.wireData.loading
 export const selectWireDataUploading = s => s.wireData.uploading
 export const selectWireDataError    = s => s.wireData.error
+export const selectWireDataPagination = s => s.wireData.pagination
 export const selectNodeResult       = s => s.wireData.nodeResult
 export const selectNodeLoading      = s => s.wireData.nodeLoading
 export const selectNodeError        = s => s.wireData.nodeError
