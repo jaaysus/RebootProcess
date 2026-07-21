@@ -104,7 +104,7 @@ function UploadPreviewModal({
   const existingFiles = files.filter(f =>  existingNames.has(fileBaseName(f)));
   const toUpload      = overwrite ? files : newFiles;
   const skipped       = overwrite ? 0 : existingFiles.length;
-  const isDone        = uploading && progress.done === progress.total && progress.total > 0;
+  const isDone        = !uploading && progress.done === progress.total && progress.total > 0;
 
   const succeededCount = Object.values(fileStatuses).filter(s => s === "done").length;
   const failedCount    = Object.values(fileStatuses).filter(s => s === "failed").length;
@@ -143,7 +143,7 @@ function UploadPreviewModal({
             <ImagePlus size={18} />
             <span>Upload Preview</span>
           </div>
-          <button className="component-modal-close upv-close" onClick={onCancel} disabled={uploading && !isDone}>
+          <button className="component-modal-close upv-close" onClick={onCancel} disabled={uploading}>
             <X size={16} />
           </button>
         </div>
@@ -227,7 +227,7 @@ function UploadPreviewModal({
         <div className="upv-actions">
           {isDone ? (
             <button className="upv-btn-proceed" onClick={onCancel}>
-              <CheckCircle size={14} /> Close
+              <CheckCircle size={14} /> Done
             </button>
           ) : (
             <>

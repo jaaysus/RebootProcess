@@ -400,9 +400,6 @@ export default function EPNForm({
             onChange={handleFileChange}
           />
         </div>
-        {(error || localError) && (
-          <div className="epns-error">{error || localError}</div>
-        )}
       </form>
 
       {pendingRows && (
